@@ -1,0 +1,13 @@
+DATABASE_URL: "postgres://postgres:password@localhost:5432/postsdb?sslmode=disable"
+PORT: "8080"
+JWT_SECRET: "my_secret_token"
+ACCESS_KEY: "M8Kjf3vpymphKULcLzJn"
+SECRET_KEY: "Un1Xkp29Sq8TOYZixlurgBpUwyqhUGlLtAadpkqG"
+MINIO_BUCKET: "crudexample"
+
+REDIS_ADDR: "localhost:6379"
+REDIS_PASS: ""
+
+KAFKA_BROKERS:
+  - "localhost:9092"
+KAFKA_TOPIC: "likes-events"
