@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"log"
+	"postService/internal/messaging"
+	"postService/internal/repository"
+	"postService/pkg/s3"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
@@ -47,17 +49,25 @@ func main() {
 	}
 
 	// Подключение к Kafka
-	producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": cfg.KafkaBrokers[0]})
+	producer, err := messaging.NewProducer("localhost:9092", "posts-events")
 	if err != nil {
-		log.Fatal("Ошибка подключения к Kafka:", err)
+		log.Fatal("Ошибка при создании Kafka Producer:", err)
 	}
 	defer producer.Close()
 
+	minioClient := s3.Init(cfg)
+	postRepo := repository.NewPostRepository(db)
+	consumer, _ := messaging.NewConsumer(messaging.ConsumerConfig{
+		BootstrapServers: "localhost:9092",
+		GroupID:          "post-group",
+		Topics:           []string{"posts-events"},
+	}, redisClient, minioClient, postRepo)
+
+	go consumer.Start()
 	log.Println("✅ Подключение к базе данных, Redis и Kafka успешно установлено")
 
-	// Создаём роутер и передаём зависимости
 	r := gin.Default()
-	routes.SetupRoutes(r, db, redisClient, producer, cfg)
+	routes.SetupRoutes(r, db, redisClient, producer, minioClient, cfg)
 
 	// Запуск сервера
 	r.Run(":" + cfg.Port)

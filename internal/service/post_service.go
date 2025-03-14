@@ -7,9 +7,10 @@ import (
 	"golang.org/x/net/context"
 	"log"
 	"mime/multipart"
+	"postService/internal/events"
+	"postService/internal/messaging"
 	"time"
 
-	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
 
@@ -25,11 +26,11 @@ type PostService struct {
 	postRepo *repository.PostRepository
 	minio    *minio.Client
 	redis    *redis.Client
-	producer *kafka.Producer
+	producer *messaging.Producer
 	mapper   *mappers.PostMapper
 }
 
-func NewPostService(postRepo *repository.PostRepository, minioClient *minio.Client, redis *redis.Client, producer *kafka.Producer) *PostService {
+func NewPostService(postRepo *repository.PostRepository, minioClient *minio.Client, redis *redis.Client, producer *messaging.Producer) *PostService {
 	return &PostService{
 		postRepo: postRepo,
 		minio:    minioClient,
@@ -67,7 +68,6 @@ func (ps *PostService) CreatePost(title, content string, userID uint, categoryID
 	return nil
 }
 
-// ✅ Получение списка постов (кеширование в Redis)
 func (ps *PostService) GetPosts() ([]response.PostResponse, error) {
 	ctx := context.TODO()
 	cachedPosts, err := ps.redis.Get(ctx, "posts:list").Result()
@@ -89,7 +89,6 @@ func (ps *PostService) GetPosts() ([]response.PostResponse, error) {
 	return postResponses, nil
 }
 
-// ✅ Получение поста по ID (кеширование)
 func (ps *PostService) GetPostByID(id uint) (*response.PostResponse, error) {
 	ctx := context.TODO()
 	cacheKey := fmt.Sprintf("post:%d", id)
@@ -113,14 +112,13 @@ func (ps *PostService) GetPostByID(id uint) (*response.PostResponse, error) {
 	return &resp, nil
 }
 
-// ✅ Обновление поста (фикс обновления категории)
 func (ps *PostService) UpdatePost(content string, title string, userId uint, postId uint, categoryID uint, file multipart.File, header *multipart.FileHeader, cfg *config.Config) error {
 	post, err := validatePermission(userId, postId, ps)
 	if err != nil {
 		return err
 	}
 
-	// Загружаем новое изображение, если передано
+	oldImageURL := post.ImageURL
 	if file != nil && header != nil {
 		imageURL, err := s3.UploadFile(file, header, cfg, ps.minio)
 		if err != nil {
@@ -129,27 +127,31 @@ func (ps *PostService) UpdatePost(content string, title string, userId uint, pos
 		post.ImageURL = imageURL
 	}
 
-	// Обновляем поля
 	post.Content = content
 	post.Title = title
-	post.CategoryID = categoryID // ✅ Фикс обновления категории
+	post.CategoryID = categoryID
 
 	err = ps.postRepo.UpdatePost(post)
 	if err != nil {
 		return err
 	}
 
-	ctx := context.TODO()
-	cacheKey := fmt.Sprintf("post:%d", postId)
-	ps.redis.Del(ctx, cacheKey)
-	ps.redis.Publish(ctx, "posts:updates", "update")
+	// Отправка события PostUpdated в Kafka
+	event := events.PostUpdated{
+		PostID:  post.ID,
+		FileURL: post.ImageURL,
+		OldURL:  oldImageURL,
+	}
+	err = ps.producer.Produce("PostUpdated", event)
+	if err != nil {
+		log.Println("Ошибка при отправке события PostUpdated:", err)
+	}
 
 	return nil
 }
 
-// ✅ Удаление поста
 func (ps *PostService) DeletePost(postId uint, userId uint) error {
-	_, err := validatePermission(userId, postId, ps)
+	post, err := validatePermission(userId, postId, ps)
 	if err != nil {
 		return err
 	}
@@ -159,16 +161,19 @@ func (ps *PostService) DeletePost(postId uint, userId uint) error {
 		return err
 	}
 
-	ctx := context.TODO()
-	cacheKey := fmt.Sprintf("post:%d", postId)
-	log.Println("Delete post:", postId)
-	ps.redis.Del(ctx, cacheKey)
-	ps.redis.Publish(ctx, "posts:updates", "update")
+	// Отправка события PostDeleted в Kafka
+	event := events.PostDeleted{
+		PostID:   postId,
+		ImageURL: post.ImageURL,
+	}
+	err = ps.producer.Produce("PostDeleted", event)
+	if err != nil {
+		log.Println("Ошибка при отправке события PostDeleted:", err)
+	}
 
 	return nil
 }
 
-// ✅ Валидация перед обновлением
 func validatePermission(userId uint, postId uint, ps *PostService) (*models.Post, error) {
 	post, err := ps.postRepo.GetPostByID(postId)
 	if err != nil {

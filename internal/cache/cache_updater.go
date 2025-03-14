@@ -3,11 +3,11 @@ package cache
 import (
 	"context"
 	"encoding/json"
-	"log"
-
 	"github.com/redis/go-redis/v9"
+	"log"
 	"postService/internal/mappers"
 	"postService/internal/repository"
+	"time"
 )
 
 func UpdateCache(redis *redis.Client, postRepo *repository.PostRepository) {
@@ -20,11 +20,9 @@ func UpdateCache(redis *redis.Client, postRepo *repository.PostRepository) {
 		return
 	}
 
-	// Конвертируем в JSON
 	postResponses := mapper.MapEach(posts)
 	jsonData, _ := json.Marshal(postResponses)
 
-	// Обновляем кэш
-	redis.Set(ctx, "posts:list", jsonData, 0) // 0 – без истечения времени
+	redis.Set(ctx, "posts:list", jsonData, 5*time.Minute)
 	log.Println("✅ Кэш обновлён!")
 }

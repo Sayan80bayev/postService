@@ -18,7 +18,6 @@ func NewPostHandler(postUsecase *service.PostService, cfg *config.Config) *PostH
 	return &PostHandler{postUsecase, cfg}
 }
 
-// Создание поста
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var req struct {
 		Title      string `form:"title" binding:"required"`
@@ -32,7 +31,6 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-
 	file, header, _ := c.Request.FormFile("file")
 
 	if err := h.postService.CreatePost(req.Title, req.Content, userID.(uint), req.CategoryID, file, header, h.cfg); err != nil {
@@ -43,7 +41,6 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Post created successfully"})
 }
 
-// Получение списка постов
 func (h *PostHandler) GetPosts(c *gin.Context) {
 	posts, err := h.postService.GetPosts()
 	if err != nil {
@@ -54,7 +51,6 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, posts)
 }
 
-// Получение одного поста
 func (h *PostHandler) GetPostByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	post, err := h.postService.GetPostByID(uint(id))
@@ -66,7 +62,6 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
-// ✅ Обновление поста
 func (h *PostHandler) UpdatePost(c *gin.Context) {
 	postID, _ := strconv.Atoi(c.Param("id"))
 

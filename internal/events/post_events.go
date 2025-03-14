@@ -1,11 +1,12 @@
 package events
 
-import "mime/multipart"
-
 type PostUpdated struct {
-	ID     uint                  `json:"id"`
-	PostID uint                  `json:"post_id"`
-	File   multipart.File        `json:"file"`
-	Header *multipart.FileHeader `json:"header"`
-	oldURL string                `json:"old_url"`
+	PostID  uint   `json:"post_id"`
+	FileURL string `json:"file_url"`
+	OldURL  string `json:"old_url"`
+}
+
+type PostDeleted struct {
+	PostID   uint   `json:"post_id"`
+	ImageURL string `json:"image_url"`
 }

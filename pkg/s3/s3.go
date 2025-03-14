@@ -9,6 +9,7 @@ import (
 	"log"
 	"mime/multipart"
 	"postService/internal/config"
+	"strings"
 )
 
 // Init initializes a MinIO client
@@ -55,18 +56,30 @@ func UploadFile(file multipart.File, header *multipart.FileHeader, cfg *config.C
 }
 
 // DeleteFileByURL deletes a file from MinIO by its URL
-func DeleteFileByURL(fileURL string, cfg *config.Config, minioClient *minio.Client) error {
+// DeleteFileByURL deletes a file from MinIO by its URL
+func DeleteFileByURL(fileURL string, minioClient *minio.Client) error {
 	if fileURL == "" {
 		return errors.New("missing file_url parameter")
 	}
 
-	var bucketName, objectName string
-	_, err := fmt.Sscanf(fileURL, "http://localhost:9000/%s/%s", &bucketName, &objectName)
-	if err != nil {
+	// Убираем префикс "http://localhost:9000/"
+	prefix := "http://localhost:9000/"
+	if !strings.HasPrefix(fileURL, prefix) {
+		return errors.New("invalid file_url format")
+	}
+	path := strings.TrimPrefix(fileURL, prefix)
+
+	// Разбиваем на части (bucketName и objectName)
+	parts := strings.SplitN(path, "/", 2)
+	if len(parts) < 2 {
 		return errors.New("invalid file_url format")
 	}
 
-	err = minioClient.RemoveObject(context.Background(), bucketName, objectName, minio.RemoveObjectOptions{})
+	bucketName := parts[0] // crudexample
+	objectName := parts[1] // 1a7eb51265f3bc780eeb0e7b1cb165d0.jpg
+
+	// Удаление файла из MinIO
+	err := minioClient.RemoveObject(context.Background(), bucketName, objectName, minio.RemoveObjectOptions{})
 	if err != nil {
 		return errors.New("failed to delete file")
 	}

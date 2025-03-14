@@ -7,16 +7,16 @@ import (
 	"postService/internal/repository"
 )
 
-type CacheListener struct {
+type Listener struct {
 	redis    *redis.Client
 	postRepo *repository.PostRepository
 }
 
-func NewCacheListener(redis *redis.Client, postRepo *repository.PostRepository) *CacheListener {
-	return &CacheListener{redis: redis, postRepo: postRepo}
+func NewCacheListener(redis *redis.Client, postRepo *repository.PostRepository) *Listener {
+	return &Listener{redis: redis, postRepo: postRepo}
 }
 
-func (cl *CacheListener) ListenForPostUpdates() {
+func (cl *Listener) ListenForPostUpdates() {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("🔥 Паника в ListenForPostUpdates: %v\n", r)
