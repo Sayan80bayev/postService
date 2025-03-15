@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"postService/internal/cache"
 	"postService/internal/events"
 	"postService/internal/repository"
+	"postService/pkg/logging"
 	"postService/pkg/s3"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -15,14 +15,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// ConsumerConfig holds configuration for the Kafka consumer
 type ConsumerConfig struct {
 	BootstrapServers string
 	GroupID          string
 	Topics           []string
 }
 
-// Consumer represents a Kafka consumer
 type Consumer struct {
 	config      ConsumerConfig
 	consumer    *kafka.Consumer
@@ -31,7 +29,6 @@ type Consumer struct {
 	postRepo    *repository.PostRepository
 }
 
-// NewConsumer initializes a new Kafka consumer
 func NewConsumer(config ConsumerConfig, redisClient *redis.Client, minioClient *minio.Client, postRepo *repository.PostRepository) (*Consumer, error) {
 	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
 		"bootstrap.servers": config.BootstrapServers,
@@ -51,42 +48,43 @@ func NewConsumer(config ConsumerConfig, redisClient *redis.Client, minioClient *
 	}, nil
 }
 
-// Start consumes messages from Kafka topics
+var logger = logging.GetLogger()
+
 func (c *Consumer) Start() {
 	err := c.consumer.SubscribeTopics(c.config.Topics, nil)
 	if err != nil {
-		fmt.Println("Error subscribing to topics:", err)
+		logger.Errorf("Error subscribing to topics: %v", err)
 		return
 	}
 
-	fmt.Println("Kafka Consumer started...")
+	logger.Info("Kafka Consumer started...")
 
 	for {
 		msg, err := c.consumer.ReadMessage(-1)
 		if err == nil {
-			fmt.Printf("Received message: %s\n", string(msg.Value))
-			c.handleMessage(msg) // Вызов обработчика сообщений
+			logger.Infof("Received message: %s", string(msg.Value))
+			c.handleMessage(msg)
 		} else {
-			fmt.Printf("Consumer error: %v\n", err)
+			logger.Warnf("Consumer error: %v", err)
 		}
 	}
 }
 
-// Close shuts down the consumer
 func (c *Consumer) Close() {
 	c.consumer.Close()
 }
 
-// handleMessage processes incoming Kafka messages
 func (c *Consumer) handleMessage(msg *kafka.Message) {
 	var event events.Event
 	err := json.Unmarshal(msg.Value, &event)
 	if err != nil {
-		log.Printf("Error parsing message: %v", err)
+		logger.Errorf("Error parsing message: %v", err)
 		return
 	}
 
 	switch event.Type {
+	case "PostCreated":
+		cache.UpdateCache(c.redisClient, c.postRepo)
 	case "PostUpdated":
 		var postUpdated events.PostUpdated
 		if err := json.Unmarshal(event.Data, &postUpdated); err == nil {
@@ -98,56 +96,49 @@ func (c *Consumer) handleMessage(msg *kafka.Message) {
 			c.handlePostDeleted(postDeleted)
 		}
 	default:
-		log.Println("Unknown event type:", event.Type)
+		logger.Warnf("Unknown event type: %s", event.Type)
 	}
 }
 
-// handlePostUpdated handles PostUpdated event
 func (c *Consumer) handlePostUpdated(event events.PostUpdated) {
 	postID := event.PostID
 	newURL := event.FileURL
 	oldURL := event.OldURL
 
-	// Удаление старого файла, если URL изменился
 	if oldURL != "" && oldURL != newURL {
 		err := s3.DeleteFileByURL(oldURL, c.minioClient)
 		if err != nil {
-			log.Println("Ошибка удаления старого файла:", err)
+			logger.Errorf("Error deleting old file: %v", err)
 		}
 	}
 
-	// Удаление кэша поста
 	err := c.redisClient.Del(context.Background(), "post:"+fmt.Sprint(postID)).Err()
 	if err != nil {
-		log.Println("Ошибка удаления поста из Redis:", err)
+		logger.Errorf("Error deleting post from Redis: %v", err)
 	}
-	log.Println("Successfully updated post:", postID)
 
-	// Обновление кэша
+	logger.Infof("Successfully updated post: %d", postID)
+
 	cache.UpdateCache(c.redisClient, c.postRepo)
 }
 
-// handlePostDeleted handles PostDeleted event
 func (c *Consumer) handlePostDeleted(event events.PostDeleted) {
 	postID := event.PostID
 	imageURL := event.ImageURL
 
-	// Удаление изображения из MinIO
 	if imageURL != "" {
 		err := s3.DeleteFileByURL(imageURL, c.minioClient)
 		if err != nil {
-			log.Println("Ошибка удаления изображения из MinIO:", err)
+			logger.Errorf("Error deleting image from MinIO: %v", err)
 		}
 	}
 
-	// Удаление поста из Redis
 	err := c.redisClient.Del(context.Background(), "post:"+fmt.Sprint(postID)).Err()
 	if err != nil {
-		log.Println("Ошибка удаления поста из Redis:", err)
+		logger.Errorf("Error deleting post from Redis: %v", err)
 	}
 
-	log.Println("Post image is deleted")
+	logger.Infof("Post %d deleted", postID)
 
-	// Обновление кэша
 	cache.UpdateCache(c.redisClient, c.postRepo)
 }

@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
-	"log"
 	"postService/internal/mappers"
 	"postService/internal/repository"
+	"postService/pkg/logging"
 	"time"
 )
+
+var logger = logging.GetLogger()
 
 func UpdateCache(redis *redis.Client, postRepo *repository.PostRepository) {
 	ctx := context.Background()
@@ -16,7 +18,7 @@ func UpdateCache(redis *redis.Client, postRepo *repository.PostRepository) {
 
 	posts, err := postRepo.GetPosts()
 	if err != nil {
-		log.Println("Ошибка загрузки постов:", err)
+		logger.Warn("Error loading posts:", err)
 		return
 	}
 
@@ -24,5 +26,5 @@ func UpdateCache(redis *redis.Client, postRepo *repository.PostRepository) {
 	jsonData, _ := json.Marshal(postResponses)
 
 	redis.Set(ctx, "posts:list", jsonData, 5*time.Minute)
-	log.Println("✅ Кэш обновлён!")
+	logger.Info("✅ Cache updated successfully!")
 }

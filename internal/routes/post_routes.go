@@ -2,28 +2,34 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/minio/minio-go/v7"
-	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
-	"postService/internal/config"
+	"postService/internal/bootstrap"
 	"postService/internal/delivery"
-	"postService/internal/messaging"
 	"postService/internal/repository"
 	"postService/internal/service"
 )
 
-// SetupPostRoutes настраивает маршруты для работы с постами
-func SetupPostRoutes(r *gin.Engine, db *gorm.DB, authMiddleware gin.HandlerFunc, client *redis.Client, producer *messaging.Producer, minioClient *minio.Client, cfg *config.Config) {
+func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.HandlerFunc) {
+	cfg := bs.Config
+	minioClient := bs.Minio
+	producer := bs.Producer
 
-	postRepo := repository.NewPostRepository(db)
-	postService := service.NewPostService(postRepo, minioClient, client, producer)
+	repoInterface, err := bs.GetRepository("post")
+	if err != nil {
+		logger.Error("Failed to get post repository: " + err.Error())
+	}
+	postRepo, ok := repoInterface.(*repository.PostRepository)
+	if !ok {
+		logger.Error("Invalid repository type for post")
+	}
+
+	cacheService := service.NewCacheService(bs.Redis)
+
+	postService := service.NewPostService(postRepo, minioClient, cacheService, producer)
 	postHandler := delivery.NewPostHandler(postService, cfg)
 
-	// Открытые роуты
 	r.GET("api/v1/posts", postHandler.GetPosts)
 	r.GET("api/v1/posts/:id", postHandler.GetPostByID)
 
-	// Защищённые роуты (требуется авторизация)
 	postRoutes := r.Group("api/v1/posts", authMiddleware)
 	{
 		postRoutes.POST("/", postHandler.CreatePost)

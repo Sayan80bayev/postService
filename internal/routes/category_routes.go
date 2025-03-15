@@ -2,15 +2,23 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
+	"postService/internal/bootstrap"
 	"postService/internal/delivery"
 	"postService/internal/repository"
 	"postService/internal/service"
 	"postService/pkg/middleware"
 )
 
-func SetupCategoryRoutes(router *gin.Engine, db *gorm.DB, authMiddleware gin.HandlerFunc) {
-	categoryRepo := repository.NewCategoryRepository(db)
+func SetupCategoryRoutes(router *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.HandlerFunc) {
+	repoInterface, err := bs.GetRepository("category")
+	if err != nil {
+		logger.Error("Failed to get category repository: " + err.Error())
+	}
+	categoryRepo, ok := repoInterface.(*repository.CategoryRepository)
+	if !ok {
+		logger.Error("Invalid repository type for category")
+	}
+
 	categoryService := service.NewCategoryService(categoryRepo)
 	categoryHandler := delivery.NewCategoryHandler(categoryService)
 
@@ -21,5 +29,4 @@ func SetupCategoryRoutes(router *gin.Engine, db *gorm.DB, authMiddleware gin.Han
 		categoryGroup.POST("/", categoryHandler.CreateCategory)
 		categoryGroup.DELETE("/:id", categoryHandler.DeleteCategory)
 	}
-
 }
