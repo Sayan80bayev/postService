@@ -5,7 +5,8 @@ import (
 	"postService/internal/bootstrap"
 	"postService/internal/delivery"
 	"postService/internal/repository"
-	"postService/internal/service"
+	"postService/internal/service/impl"
+	"postService/pkg/s3"
 )
 
 func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.HandlerFunc) {
@@ -22,9 +23,9 @@ func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.
 		logger.Error("Invalid repository type for post")
 	}
 
-	cacheService := service.NewCacheService(bs.Redis)
-
-	postService := service.NewPostService(postRepo, minioClient, cacheService, producer)
+	cacheService := impl.NewCacheService(bs.Redis)
+	fileStorage := s3.NewMinioStorage(minioClient)
+	postService := impl.NewPostService(postRepo, fileStorage, cacheService, producer)
 	postHandler := delivery.NewPostHandler(postService, cfg)
 
 	r.GET("api/v1/posts", postHandler.GetPosts)

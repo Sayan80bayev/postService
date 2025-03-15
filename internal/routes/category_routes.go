@@ -5,7 +5,7 @@ import (
 	"postService/internal/bootstrap"
 	"postService/internal/delivery"
 	"postService/internal/repository"
-	"postService/internal/service"
+	"postService/internal/service/impl"
 	"postService/pkg/middleware"
 )
 
@@ -19,7 +19,7 @@ func SetupCategoryRoutes(router *gin.Engine, bs *bootstrap.Bootstrap, authMiddle
 		logger.Error("Invalid repository type for category")
 	}
 
-	categoryService := service.NewCategoryService(categoryRepo)
+	categoryService := impl.NewCategoryService(categoryRepo)
 	categoryHandler := delivery.NewCategoryHandler(categoryService)
 
 	router.GET("/category", categoryHandler.ListCategory)

@@ -10,12 +10,12 @@ import (
 )
 
 type PostHandler struct {
-	postService *service.PostService
+	postService service.PostService
 	cfg         *config.Config
 }
 
-func NewPostHandler(postUsecase *service.PostService, cfg *config.Config) *PostHandler {
-	return &PostHandler{postUsecase, cfg}
+func NewPostHandler(postService service.PostService, cfg *config.Config) *PostHandler {
+	return &PostHandler{postService, cfg}
 }
 
 func (h *PostHandler) CreatePost(c *gin.Context) {
@@ -33,7 +33,7 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	file, header, _ := c.Request.FormFile("file")
 
-	if err := h.postService.CreatePost(req.Title, req.Content, userID.(uint), req.CategoryID, file, header, h.cfg); err != nil {
+	if err := h.postService.CreatePost(req.Title, req.Content, userID.(uint), req.CategoryID, file, header); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post"})
 		return
 	}
@@ -79,7 +79,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	file, header, _ := c.Request.FormFile("file")
 
-	if err := h.postService.UpdatePost(req.Content, req.Title, userID.(uint), uint(postID), req.CategoryID, file, header, h.cfg); err != nil {
+	if err := h.postService.UpdatePost(req.Content, req.Title, userID.(uint), uint(postID), req.CategoryID, file, header); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
