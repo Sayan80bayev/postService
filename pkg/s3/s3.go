@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"log"
 	"mime/multipart"
 	"postService/internal/config"
+	"postService/pkg/logging"
 	"strings"
 )
+
+var logger = logging.GetLogger()
 
 func Init(cfg *config.Config) *minio.Client {
 	endpoint := "localhost:9000"
@@ -19,9 +21,9 @@ func Init(cfg *config.Config) *minio.Client {
 		Secure: false,
 	})
 	if err != nil {
-		log.Fatal(err)
+		logger.Error(err)
 	}
-	fmt.Println("Successfully connected to MinIO")
+	logger.Info("Successfully connected to MinIO")
 	return minioClient
 }
 

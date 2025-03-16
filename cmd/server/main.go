@@ -22,9 +22,9 @@ func main() {
 	go bs.Consumer.Start()
 	defer bs.Consumer.Close()
 
-	r := gin.New()
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = logger.Out
+	r := gin.New()
 
 	r.Use(gin.Recovery())
 	r.Use(logging.Middleware)
