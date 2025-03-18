@@ -5,18 +5,22 @@ import (
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
 	"postService/internal/mappers"
-	"postService/internal/repository"
+	"postService/internal/model"
 	"postService/pkg/logging"
 	"time"
 )
 
 var logger = logging.GetLogger()
 
-func UpdateCache(redis *redis.Client, postRepo *repository.PostRepository) {
+type PostCacheRepository interface {
+	GetPosts() ([]model.Post, error)
+}
+
+func UpdateCache(redis *redis.Client, repo PostCacheRepository) {
 	ctx := context.Background()
 	mapper := mappers.PostMapper{MapFunc: mappers.MapPostToResponse}
 
-	posts, err := postRepo.GetPosts()
+	posts, err := repo.GetPosts()
 	if err != nil {
 		logger.Warn("Error loading posts:", err)
 		return

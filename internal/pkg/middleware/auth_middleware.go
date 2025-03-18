@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"net/http"
-	"postService/internal/models"
+	"postService/internal/model"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +38,7 @@ func AuthMiddleware(jwtKey string) gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		c.Set("user_role", models.Role(userRole))
+		c.Set("user_role", model.Role(userRole))
 		c.Set("user_id", uint(userID))
 		c.Next()
 	}
@@ -56,8 +56,8 @@ func CheckAdminRole() gin.HandlerFunc {
 		}
 
 		// Type assertion to ensure it's a string (or whatever type your roles use)
-		role, ok := userRole.(models.Role)
-		if !ok || role != models.RoleAdmin {
+		role, ok := userRole.(model.Role)
+		if !ok || role != model.RoleAdmin {
 			msg := "You do not have access to this resource"
 			c.JSON(http.StatusForbidden, gin.H{"error": msg})
 			c.Abort()

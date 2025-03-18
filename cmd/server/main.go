@@ -32,5 +32,8 @@ func main() {
 	routes.SetupRoutes(r, bs)
 
 	logger.Infof("🚀 Server is running on port %s", bs.Config.Port)
-	r.Run(":" + bs.Config.Port)
+	err = r.Run(":" + bs.Config.Port)
+	if err != nil {
+		logger.Errorf("Error starting server: %v", err)
+	}
 }

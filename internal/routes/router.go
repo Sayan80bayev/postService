@@ -2,10 +2,10 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"postService/internal/pkg/middleware"
 	"postService/pkg/logging"
 
 	"postService/internal/bootstrap"
-	"postService/pkg/middleware"
 )
 
 var logger = logging.GetLogger()

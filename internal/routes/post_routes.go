@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"postService/internal/bootstrap"
 	"postService/internal/delivery"
+	"postService/internal/pkg/storage"
 	"postService/internal/repository"
-	"postService/internal/service/impl"
-	"postService/pkg/s3"
+	"postService/internal/service"
 )
 
 func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.HandlerFunc) {
@@ -18,14 +18,14 @@ func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.
 	if err != nil {
 		logger.Error("Failed to get post repository: " + err.Error())
 	}
-	postRepo, ok := repoInterface.(*repository.PostRepository)
+	postRepo, ok := repoInterface.(*repository.PostRepositoryImpl)
 	if !ok {
 		logger.Error("Invalid repository type for post")
 	}
 
-	cacheService := impl.NewCacheService(bs.Redis)
-	fileStorage := s3.NewMinioStorage(minioClient)
-	postService := impl.NewPostService(postRepo, fileStorage, cacheService, producer)
+	cacheService := service.NewCacheService(bs.Redis)
+	fileStorage := storage.NewMinioStorage(minioClient)
+	postService := service.NewPostService(postRepo, fileStorage, cacheService, producer)
 	postHandler := delivery.NewPostHandler(postService, cfg)
 
 	r.GET("api/v1/posts", postHandler.GetPosts)

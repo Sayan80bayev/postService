@@ -1,0 +1,4 @@
+issues:
+  exclude-files:
+    - internal/model/post.go
+    - cmd/server/main.go

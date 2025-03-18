@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"postService/internal/bootstrap"
 	"postService/internal/delivery"
+	"postService/internal/pkg/middleware"
 	"postService/internal/repository"
-	"postService/internal/service/impl"
-	"postService/pkg/middleware"
+	"postService/internal/service"
 )
 
 func SetupCategoryRoutes(router *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.HandlerFunc) {
@@ -14,12 +14,12 @@ func SetupCategoryRoutes(router *gin.Engine, bs *bootstrap.Bootstrap, authMiddle
 	if err != nil {
 		logger.Error("Failed to get category repository: " + err.Error())
 	}
-	categoryRepo, ok := repoInterface.(*repository.CategoryRepository)
+	categoryRepo, ok := repoInterface.(*repository.CategoryRepositoryImpl)
 	if !ok {
 		logger.Error("Invalid repository type for category")
 	}
 
-	categoryService := impl.NewCategoryService(categoryRepo)
+	categoryService := service.NewCategoryService(categoryRepo)
 	categoryHandler := delivery.NewCategoryHandler(categoryService)
 
 	router.GET("/category", categoryHandler.ListCategory)

@@ -3,6 +3,7 @@ package delivery
 import (
 	"net/http"
 	"postService/internal/config"
+	"postService/internal/request"
 	"postService/internal/service"
 	"strconv"
 
@@ -10,20 +11,16 @@ import (
 )
 
 type PostHandler struct {
-	postService service.PostService
+	postService *service.PostService
 	cfg         *config.Config
 }
 
-func NewPostHandler(postService service.PostService, cfg *config.Config) *PostHandler {
+func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostHandler {
 	return &PostHandler{postService, cfg}
 }
 
 func (h *PostHandler) CreatePost(c *gin.Context) {
-	var req struct {
-		Title      string `form:"title" binding:"required"`
-		Content    string `form:"content" binding:"required"`
-		CategoryID uint   `form:"category_id" binding:"required"`
-	}
+	req := request.PostRequest{}
 
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
@@ -32,8 +29,11 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 	userID, _ := c.Get("user_id")
 	file, header, _ := c.Request.FormFile("file")
+	req.UserID = userID.(int)
+	req.File = file
+	req.Header = header
 
-	if err := h.postService.CreatePost(req.Title, req.Content, userID.(uint), req.CategoryID, file, header); err != nil {
+	if err := h.postService.CreatePost(req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post"})
 		return
 	}
@@ -53,7 +53,7 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 
 func (h *PostHandler) GetPostByID(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
-	post, err := h.postService.GetPostByID(uint(id))
+	post, err := h.postService.GetPostByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
@@ -65,11 +65,7 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 func (h *PostHandler) UpdatePost(c *gin.Context) {
 	postID, _ := strconv.Atoi(c.Param("id"))
 
-	var req struct {
-		Title      string `form:"title"`
-		Content    string `form:"content"`
-		CategoryID uint   `form:"category_id"`
-	}
+	req := request.PostRequest{}
 
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
@@ -78,8 +74,11 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 
 	userID, _ := c.Get("user_id")
 	file, header, _ := c.Request.FormFile("file")
+	req.UserID = userID.(int)
+	req.File = file
+	req.Header = header
 
-	if err := h.postService.UpdatePost(req.Content, req.Title, userID.(uint), uint(postID), req.CategoryID, file, header); err != nil {
+	if err := h.postService.UpdatePost(postID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -88,7 +87,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 }
 
 func (h *PostHandler) DeletePost(c *gin.Context) {
-	postID64, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	postID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
 		return
@@ -99,9 +98,8 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	postID := uint(postID64)
 
-	if err := h.postService.DeletePost(postID, userID.(uint)); err != nil {
+	if err := h.postService.DeletePost(postID, userID.(int)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete post" + ": " + err.Error()})
 		return
 	}
