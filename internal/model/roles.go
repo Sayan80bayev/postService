@@ -3,6 +3,7 @@ package model
 type Role string
 
 const (
-	RoleAdmin Role = "ADMIN"
-	RoleUser  Role = "USER"
+	RoleAdmin     Role = "ADMIN"
+	RoleUser      Role = "USER"
+	RoleModerator Role = "MODERATOR"
 )

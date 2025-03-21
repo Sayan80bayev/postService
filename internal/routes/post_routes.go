@@ -4,12 +4,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"postService/internal/bootstrap"
 	"postService/internal/delivery"
+	"postService/internal/pkg/middleware"
 	"postService/internal/pkg/storage"
 	"postService/internal/repository"
 	"postService/internal/service"
 )
 
-func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.HandlerFunc) {
+func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Container) {
 	cfg := bs.Config
 	minioClient := bs.Minio
 	producer := bs.Producer
@@ -31,7 +32,7 @@ func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Bootstrap, authMiddleware gin.
 	r.GET("api/v1/posts", postHandler.GetPosts)
 	r.GET("api/v1/posts/:id", postHandler.GetPostByID)
 
-	postRoutes := r.Group("api/v1/posts", authMiddleware)
+	postRoutes := r.Group("api/v1/posts", middleware.AuthMiddleware(bs.Config.JWTSecret), middleware.ActiveMiddleware())
 	{
 		postRoutes.POST("/", postHandler.CreatePost)
 		postRoutes.PUT("/:id", postHandler.UpdatePost)

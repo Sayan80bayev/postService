@@ -33,18 +33,20 @@ func AuthMiddleware(jwtKey string) gin.HandlerFunc {
 
 		userID, okID := (*claims)["user_id"].(float64)
 		userRole, okROLE := (*claims)["user_role"].(string)
-		if !okID || !okROLE {
+		userActive, okActive := (*claims)["user_active"].(bool)
+		if !okID || !okROLE || !okActive {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token data"})
 			c.Abort()
 			return
 		}
 		c.Set("user_role", model.Role(userRole))
 		c.Set("user_id", uint(userID))
+		c.Set("user_active", userActive)
 		c.Next()
 	}
 }
 
-func CheckAdminRole() gin.HandlerFunc {
+func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Retrieve user role from context
 		userRole, exists := c.Get("user_role")
@@ -65,6 +67,49 @@ func CheckAdminRole() gin.HandlerFunc {
 		}
 
 		// Continue processing the request
+		c.Next()
+	}
+}
+
+func ModeratorMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, exists := c.Get("user_role")
+		if !exists {
+			msg := "Could not find user role"
+			c.JSON(http.StatusUnauthorized, gin.H{"error": msg})
+			c.Abort()
+			return
+		}
+
+		role, ok := userRole.(model.Role)
+		if !ok || role != model.RoleModerator {
+			msg := "You do not have access to this resource"
+			c.JSON(http.StatusForbidden, gin.H{"error": msg})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func ActiveMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userActive, exists := c.Get("user_active")
+		if !exists {
+			msg := "Could not find user active"
+			c.JSON(http.StatusUnauthorized, gin.H{"error": msg})
+			c.Abort()
+			return
+		}
+
+		if !userActive.(bool) {
+			msg := "You are banned and cannot access this resource"
+			c.JSON(http.StatusForbidden, gin.H{"error": msg})
+			c.Abort()
+			return
+		}
+
 		c.Next()
 	}
 }

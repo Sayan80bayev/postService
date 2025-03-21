@@ -17,7 +17,7 @@ import (
 	"postService/pkg/logging"
 )
 
-type Bootstrap struct {
+type Container struct {
 	DB           *gorm.DB
 	Redis        *redis.Client
 	Minio        *minio.Client
@@ -27,7 +27,7 @@ type Bootstrap struct {
 	Repositories map[string]interface{}
 }
 
-func Init() (*Bootstrap, error) {
+func Init() (*Container, error) {
 	logger := logging.GetLogger()
 
 	cfg, err := config.LoadConfig()
@@ -64,7 +64,7 @@ func Init() (*Bootstrap, error) {
 
 	logger.Info("✅ Dependencies initialized successfully")
 
-	return &Bootstrap{
+	return &Container{
 		DB:           db,
 		Redis:        redisClient,
 		Minio:        minioClient,
@@ -133,7 +133,7 @@ func initKafkaConsumer(redisClient *redis.Client, minioClient *minio.Client, pos
 	return consumer, nil
 }
 
-func (b *Bootstrap) GetRepository(name string) (interface{}, error) {
+func (b *Container) GetRepository(name string) (interface{}, error) {
 	repo, exists := b.Repositories[name]
 	if !exists {
 		return nil, fmt.Errorf("repository %s not found", name)
