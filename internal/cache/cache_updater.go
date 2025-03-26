@@ -27,7 +27,11 @@ func UpdateCache(redis *redis.Client, repo PostCacheRepository) {
 	}
 
 	postResponses := mapper.MapEach(posts)
-	jsonData, _ := json.Marshal(postResponses)
+	jsonData, err := json.Marshal(postResponses)
+	if err != nil {
+		logger.Warnf("Could not marshal json on update cache: %v", err)
+		return
+	}
 
 	redis.Set(ctx, "posts:list", jsonData, 5*time.Minute)
 	logger.Info("✅ Cache updated successfully!")

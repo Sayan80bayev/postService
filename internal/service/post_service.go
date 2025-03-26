@@ -179,7 +179,11 @@ func (ps *PostService) getFromCache(key string, dest interface{}) error {
 }
 
 func (ps *PostService) setToCache(key string, value interface{}, duration time.Duration) error {
-	data, _ := json.Marshal(value)
+	data, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
 	return ps.cacheService.Set(context.TODO(), key, data, duration)
 }
 

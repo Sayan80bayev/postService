@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"postService/internal/bootstrap"
 
 	"postService/pkg/logging"
@@ -19,7 +20,7 @@ func main() {
 		logger.Errorf("bootstrap init err: %v", err)
 	}
 
-	go bs.Consumer.Start()
+	go bs.Consumer.Start(context.Background())
 	defer bs.Consumer.Close()
 
 	gin.SetMode(gin.ReleaseMode)

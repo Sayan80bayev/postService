@@ -1,6 +1,8 @@
 package messaging
 
+import "context"
+
 type Consumer interface {
-	Start()
+	Start(ctx context.Context)
 	Close()
 }
