@@ -23,7 +23,7 @@ func SetupCategoryRoutes(router *gin.Engine, c *bootstrap.Container) {
 	categoryService := service.NewCategoryService(categoryRepo)
 	categoryHandler := delivery.NewCategoryHandler(categoryService)
 
-	router.GET("/category", categoryHandler.ListCategory)
+	router.GET("api/v1/category", categoryHandler.ListCategory)
 
 	categoryGroup := router.Group("/category", middleware.AuthMiddleware(c.Config.JWTSecret), middleware.AdminMiddleware())
 	{

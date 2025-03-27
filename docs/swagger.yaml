@@ -1,0 +1,46 @@
+info:
+  contact: {}
+paths:
+  /api/v1/category:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all available categories.
+      produces:
+      - application/json
+      responses: {}
+      summary: List all categories
+      tags:
+      - Categories
+    post:
+      consumes:
+      - application/json
+      description: Adds a new category to the system (Admin only).
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Create a new category
+      tags:
+      - Categories
+  /api/v1/category/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a category by ID (Admin only).
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses: {}
+      security:
+      - BearerAuth: []
+      summary: Delete a category
+      tags:
+      - Categories
+swagger: "2.0"

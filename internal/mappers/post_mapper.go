@@ -2,26 +2,26 @@ package mappers
 
 import (
 	"postService/internal/model"
-	"postService/internal/response"
+	response2 "postService/internal/transfer/response"
 )
 
 type PostMapper struct {
-	MapFunc[model.Post, response.PostResponse]
+	MapFunc[model.Post, response2.PostResponse]
 }
 
 func NewPostMapper() *PostMapper {
 	return &PostMapper{MapFunc: MapPostToResponse}
 }
 
-func MapPostToResponse(post model.Post) response.PostResponse {
-	return response.PostResponse{
+func MapPostToResponse(post model.Post) response2.PostResponse {
+	return response2.PostResponse{
 		ID:    post.ID,
 		Title: post.Title,
-		Author: response.UserResponse{
+		Author: response2.UserResponse{
 			ID:       post.User.ID,
 			Username: post.User.Username,
 		},
-		Category: response.CategoryResponse{
+		Category: response2.CategoryResponse{
 			ID:   post.Category.ID,
 			Name: post.Category.Name,
 		},

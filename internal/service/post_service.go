@@ -11,8 +11,8 @@ import (
 	"postService/internal/messaging"
 	"postService/internal/model"
 	"postService/internal/pkg/storage"
-	"postService/internal/request"
-	"postService/internal/response"
+	"postService/internal/transfer/request"
+	"postService/internal/transfer/response"
 	"postService/pkg/logging"
 	"time"
 )

@@ -3,8 +3,8 @@ package delivery
 import (
 	"net/http"
 	"postService/internal/config"
-	"postService/internal/request"
 	"postService/internal/service"
+	"postService/internal/transfer/request"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
