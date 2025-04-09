@@ -154,10 +154,12 @@ func initRedis(cfg *config.Config) (*redis.Client, error) {
 	return client, nil
 }
 
+// initRepositories creates repository components
 func initRepositories(db *gorm.DB) map[string]interface{} {
 	return map[string]interface{}{
 		"post":     repository.NewPostRepository(db),
 		"category": repository.NewCategoryRepository(db),
+		"comment":  repository.NewCommentRepository(db),
 	}
 }
 

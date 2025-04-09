@@ -9,6 +9,10 @@ type CommentRepositoryImpl struct {
 	db *gorm.DB
 }
 
+func NewCommentRepository(db *gorm.DB) *CommentRepositoryImpl {
+	return &CommentRepositoryImpl{db: db}
+}
+
 func (r *CommentRepositoryImpl) GetByID(id int) (*model.Comment, error) {
 	comm := &model.Comment{}
 	err := r.db.First(comm, id).Error
