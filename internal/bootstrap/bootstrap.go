@@ -2,9 +2,11 @@ package bootstrap
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
+	"github.com/sirupsen/logrus"
 	"postService/internal/pkg/storage"
 
 	migrateps "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -52,7 +54,7 @@ func Init() (*Container, error) {
 
 	minioClient := storage.Init(cfg)
 
-	producer, err := messaging.NewKafkaProducer("localhost:9092", "posts-events")
+	producer, err := messaging.NewKafkaProducer(cfg.KafkaBrokers[0], "posts-events")
 	if err != nil {
 		logger.Fatal("Error creating Kafka KafkaProducer:", err)
 		return nil, err
@@ -60,7 +62,7 @@ func Init() (*Container, error) {
 
 	repositories := initRepositories(db)
 
-	consumer, err := initKafkaConsumer(redisClient, minioClient, repositories["post"].(*repository.PostRepositoryImpl))
+	consumer, err := initKafkaConsumer(redisClient, minioClient, repositories["post"].(*repository.PostRepositoryImpl), cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +95,19 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	g, err2, done := initMigrations(sqlDB, logger)
+	if done {
+		return g, err2
+	}
+
+	return db, nil
+}
+
+func initMigrations(sqlDB *sql.DB, logger *logrus.Logger) (*gorm.DB, error, bool) {
 	driver, err := migrateps.WithInstance(sqlDB, &migrateps.Config{})
 	if err != nil {
 		logger.Fatal("Error initializing migration driver:", err)
-		return nil, err
+		return nil, err, true
 	}
 
 	m, err := migrate.NewWithDatabaseInstance(
@@ -104,13 +115,13 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 		"postgres", driver)
 	if err != nil {
 		logger.Fatal("Error creating migration instance:", err)
-		return nil, err
+		return nil, err, true
 	}
 
 	version, _, err := m.Version()
 	if err != nil {
 		logger.Fatal("Error checking migration version:", err)
-		return nil, err
+		return nil, err, true
 	}
 
 	if version == 0 {
@@ -123,17 +134,16 @@ func initDatabase(cfg *config.Config) (*gorm.DB, error) {
 		logger.Warn("⚠️ Database is in dirty state, forcing migration to version 1")
 		if err := m.Force(1); err != nil {
 			logger.Fatal("Error forcing migration to version 1:", err)
-			return nil, err
+			return nil, err, true
 		}
 	}
 
 	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		logger.Fatal("Migration failed:", err)
-		return nil, err
+		return nil, err, true
 	}
 	logger.Info("✅ Migrations applied successfully")
-
-	return db, nil
+	return nil, nil, false
 }
 
 func initRedis(cfg *config.Config) (*redis.Client, error) {
@@ -163,9 +173,10 @@ func initRepositories(db *gorm.DB) map[string]interface{} {
 	}
 }
 
-func initKafkaConsumer(redisClient *redis.Client, minioClient *minio.Client, postRepo *repository.PostRepositoryImpl) (*messaging.KafkaConsumer, error) {
+func initKafkaConsumer(redisClient *redis.Client, minioClient *minio.Client, postRepo *repository.PostRepositoryImpl, cfg *config.Config) (*messaging.KafkaConsumer, error) {
+	logging.GetLogger().Info("Kafka broker: ", cfg.KafkaBrokers[0])
 	consumer, err := messaging.NewKafkaConsumer(messaging.ConsumerConfig{
-		BootstrapServers: "localhost:9092",
+		BootstrapServers: cfg.KafkaBrokers[0],
 		GroupID:          "post-group",
 		Topics:           []string{"posts-events"},
 	}, redisClient, minioClient, postRepo)
