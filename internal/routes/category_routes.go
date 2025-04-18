@@ -25,7 +25,7 @@ func SetupCategoryRoutes(router *gin.Engine, c *bootstrap.Container) {
 
 	router.GET("api/v1/category", categoryHandler.ListCategory)
 
-	categoryGroup := router.Group("/category", middleware.AuthMiddleware(c.Config.JWTSecret), middleware.AdminMiddleware())
+	categoryGroup := router.Group("api/v1/category", middleware.AuthMiddleware(c.Config.JWTSecret), middleware.AdminMiddleware())
 	{
 		categoryGroup.POST("/", categoryHandler.CreateCategory)
 		categoryGroup.DELETE("/:id", categoryHandler.DeleteCategory)
