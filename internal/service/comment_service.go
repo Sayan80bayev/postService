@@ -3,9 +3,11 @@ package service
 import (
 	"errors"
 	"postService/internal/model"
+	"postService/internal/transfer/request"
 )
 
 type CommentRepository interface {
+	GetByPostID(id int) ([]model.Comment, error)
 	GetByID(id int) (*model.Comment, error)
 	Create(comm *model.Comment) error
 	Update(comm *model.Comment) error
@@ -24,19 +26,22 @@ func NewCommentService(r CommentRepository, pr PostRepository) *CommentService {
 	}
 }
 
-// CreateComment creates a new comment after verifying the associated post exists
-func (s *CommentService) CreateComment(comment *model.Comment) error {
-	if comment == nil {
-		return errors.New("comment is nil")
-	}
+func (s *CommentService) GetCommentsByPostID(id int) ([]model.Comment, error) {
+	return s.r.GetByPostID(id)
+}
 
+// CreateComment creates a new comment after verifying the associated post exists
+func (s *CommentService) CreateComment(req request.CommentRequest) error {
 	// Check if post exists
-	_, err := s.pr.GetPostByID(int(comment.PostID))
+	_, err := s.pr.GetPostByID(int(req.PostID))
 	if err != nil {
 		return errors.New("post not found")
 	}
 
-	return s.r.Create(comment)
+	return s.r.Create(&model.Comment{
+		PostID:  req.PostID,
+		Content: req.Content,
+	})
 }
 
 // GetCommentByID retrieves a comment by ID

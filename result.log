@@ -48,7 +48,7 @@
 === RUN   TestDeleteComment_CommentNotFound
 --- PASS: TestDeleteComment_CommentNotFound (0.00s)
 PASS
-ok  	postService/internal/service	1.130s
+ok  	postService/internal/service	(cached)
 ?   	postService/internal/transfer/request	[no test files]
 ?   	postService/internal/transfer/response	[no test files]
 ?   	postService/pkg/logging	[no test files]

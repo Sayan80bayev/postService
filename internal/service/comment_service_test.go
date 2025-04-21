@@ -4,6 +4,7 @@ import (
 	"errors"
 	"postService/internal/model"
 	"postService/internal/service"
+	"postService/internal/transfer/request"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,6 +14,11 @@ import (
 // MockCommentRepo mocks the CommentRepository interface
 type MockCommentRepo struct {
 	mock.Mock
+}
+
+func (m *MockCommentRepo) GetByPostID(id int) ([]model.Comment, error) {
+	args := m.Called(id)
+	return args.Get(0).([]model.Comment), args.Error(1)
 }
 
 func (m *MockCommentRepo) GetByID(id int) (*model.Comment, error) {
@@ -55,6 +61,11 @@ func TestCreateComment_Success(t *testing.T) {
 	mockPostRepo := new(MockPostRepo)
 	s := service.NewCommentService(mockCommentRepo, mockPostRepo)
 
+	req := request.CommentRequest{
+		PostID:  1,
+		Content: "Nice post!",
+	}
+
 	comment := &model.Comment{
 		ID:      1,
 		PostID:  1,
@@ -64,7 +75,7 @@ func TestCreateComment_Success(t *testing.T) {
 	mockPostRepo.On("GetPostByID", int(comment.PostID)).Return(&model.Post{}, nil)
 	mockCommentRepo.On("Create", comment).Return(nil)
 
-	err := s.CreateComment(comment)
+	err := s.CreateComment(req)
 
 	assert.NoError(t, err)
 	mockPostRepo.AssertExpectations(t)
@@ -76,6 +87,11 @@ func TestCreateComment_PostNotFound(t *testing.T) {
 	mockPostRepo := new(MockPostRepo)
 	s := service.NewCommentService(mockCommentRepo, mockPostRepo)
 
+	req := request.CommentRequest{
+		PostID:  999,
+		Content: "Comment with invalid post",
+	}
+
 	comment := &model.Comment{
 		PostID:  999,
 		Content: "Comment with invalid post",
@@ -84,7 +100,7 @@ func TestCreateComment_PostNotFound(t *testing.T) {
 	// Explicitly return nil of the correct type
 	mockPostRepo.On("GetPostByID", int(comment.PostID)).Return((*model.Post)(nil), errors.New("not found"))
 
-	err := s.CreateComment(comment)
+	err := s.CreateComment(req)
 
 	assert.EqualError(t, err, "post not found")
 }

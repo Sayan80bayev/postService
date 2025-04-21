@@ -13,6 +13,12 @@ func NewCommentRepository(db *gorm.DB) *CommentRepositoryImpl {
 	return &CommentRepositoryImpl{db: db}
 }
 
+func (r *CommentRepositoryImpl) GetByPostID(pid int) ([]model.Comment, error) {
+	var comments []model.Comment
+	err := r.db.Find(&comments).Where("post_id = ?", pid).Error
+	return comments, err
+}
+
 func (r *CommentRepositoryImpl) GetByID(id int) (*model.Comment, error) {
 	comm := &model.Comment{}
 	err := r.db.First(comm, id).Error
