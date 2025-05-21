@@ -25,7 +25,7 @@ func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Container) {
 	}
 
 	cacheService := service.NewCacheService(bs.Redis)
-	fileStorage := storage.NewMinioStorage(minioClient)
+	fileStorage := storage.NewMinioStorage(minioClient, cfg)
 	postService := service.NewPostService(postRepo, fileStorage, cacheService, producer)
 	postHandler := delivery.NewPostHandler(postService, cfg)
 

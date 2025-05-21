@@ -21,34 +21,96 @@
 === RUN   TestCategoryService_DeleteCategory
 --- PASS: TestCategoryService_DeleteCategory (0.00s)
 === RUN   TestPostService_CreatePost_Success
-[32mINFO[0m PostCreated event published successfully 2025-04-14 16:20:28
+[32mINFO[0m PostCreated event published successfully 2025-04-21 23:47:44
 --- PASS: TestPostService_CreatePost_Success (0.00s)
 === RUN   TestPostService_GetPosts_FromRepo
-[32mINFO[0m Fetched posts from DB and cached 2025-04-14 16:20:28
+[32mINFO[0m Fetched posts from DB and cached 2025-04-21 23:47:44
 --- PASS: TestPostService_GetPosts_FromRepo (0.00s)
 === RUN   TestPostService_DeletePost_PermissionDenied
 --- PASS: TestPostService_DeletePost_PermissionDenied (0.00s)
 === RUN   TestPostService_DeletePost_Success
-[32mINFO[0m PostDeleted event published successfully 2025-04-14 16:20:28
+[32mINFO[0m PostDeleted event published successfully 2025-04-21 23:47:44
 --- PASS: TestPostService_DeletePost_Success (0.00s)
 === RUN   TestCreateComment_Success
---- PASS: TestCreateComment_Success (0.00s)
-=== RUN   TestCreateComment_PostNotFound
---- PASS: TestCreateComment_PostNotFound (0.00s)
-=== RUN   TestGetCommentByID_Success
---- PASS: TestGetCommentByID_Success (0.00s)
-=== RUN   TestGetCommentByID_InvalidID
---- PASS: TestGetCommentByID_InvalidID (0.00s)
-=== RUN   TestUpdateComment_Success
---- PASS: TestUpdateComment_Success (0.00s)
-=== RUN   TestUpdateComment_CommentNotFound
---- PASS: TestUpdateComment_CommentNotFound (0.00s)
-=== RUN   TestDeleteComment_Success
---- PASS: TestDeleteComment_Success (0.00s)
-=== RUN   TestDeleteComment_CommentNotFound
---- PASS: TestDeleteComment_CommentNotFound (0.00s)
-PASS
-ok  	postService/internal/service	(cached)
+--- FAIL: TestCreateComment_Success (0.00s)
+panic: 
+	
+	mock: Unexpected Method Call
+	-----------------------------
+	
+	Create(*model.Comment)
+			0: &model.Comment{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, PostID:1, Post:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, UserID:0, User:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, Content:"Nice post!"}
+	
+	The closest call I have is: 
+	
+	Create(*model.Comment)
+			0: &model.Comment{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x1, PostID:1, Post:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, UserID:0, User:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, Content:"Nice post!"}
+	
+	Difference found in argument 0:
+	
+	--- Expected
+	+++ Actual
+	@@ -10,3 +10,3 @@
+	  },
+	- ID: (uint) 1,
+	+ ID: (uint) 0,
+	  PostID: (int) 1,
+	
+	Diff: 0: FAIL:  (*model.Comment=&{{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0 1 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} 0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} Nice post!}) != (*model.Comment=&{{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 1 1 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} 0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} Nice post!})
+	at: [/Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service_test.go:30 /Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service.go:41 /Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service_test.go:78]
+	 [recovered]
+	panic: 
+	
+	mock: Unexpected Method Call
+	-----------------------------
+	
+	Create(*model.Comment)
+			0: &model.Comment{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, PostID:1, Post:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, UserID:0, User:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, Content:"Nice post!"}
+	
+	The closest call I have is: 
+	
+	Create(*model.Comment)
+			0: &model.Comment{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x1, PostID:1, Post:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, UserID:0, User:model.Post{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, ID:0x0, Title:"", Content:"", CategoryID:0, Category:model.Category{Model:gorm.Model{ID:0x0, CreatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), UpdatedAt:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), DeletedAt:gorm.DeletedAt{Time:time.Date(1, time.January, 1, 0, 0, 0, 0, time.UTC), Valid:false}}, Name:"", Posts:[]model.Post(nil)}, Comments:[]model.Comment(nil), UserID:0, User:model.User{ID:0x0, Username:""}, ImageURL:"", LikeCount:0}, Content:"Nice post!"}
+	
+	Difference found in argument 0:
+	
+	--- Expected
+	+++ Actual
+	@@ -10,3 +10,3 @@
+	  },
+	- ID: (uint) 1,
+	+ ID: (uint) 0,
+	  PostID: (int) 1,
+	
+	Diff: 0: FAIL:  (*model.Comment=&{{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0 1 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} 0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} Nice post!}) != (*model.Comment=&{{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 1 1 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} 0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}} 0   0 {{0 0001-01-01 00:00:00 +0000 UTC 0001-01-01 00:00:00 +0000 UTC {0001-01-01 00:00:00 +0000 UTC false}}  []} [] 0 {0 }  0} Nice post!})
+	at: [/Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service_test.go:30 /Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service.go:41 /Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service_test.go:78]
+	
+
+goroutine 31 [running]:
+testing.tRunner.func1.2({0x100e60e40, 0x140003102e0})
+	/Users/sayanseksenbaev/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.1.darwin-arm64/src/testing/testing.go:1734 +0x1ac
+testing.tRunner.func1()
+	/Users/sayanseksenbaev/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.1.darwin-arm64/src/testing/testing.go:1737 +0x334
+panic({0x100e60e40?, 0x140003102e0?})
+	/Users/sayanseksenbaev/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.1.darwin-arm64/src/runtime/panic.go:792 +0x124
+github.com/stretchr/testify/mock.(*Mock).fail(0x14000241c20, {0x100cb8d35?, 0x4?}, {0x14000241cc0?, 0x1?, 0x1?})
+	/Users/sayanseksenbaev/go/pkg/mod/github.com/stretchr/testify@v1.10.0/mock/mock.go:349 +0x148
+github.com/stretchr/testify/mock.(*Mock).MethodCalled(0x14000241c20, {0x100f77b4f, 0x6}, {0x140002b1be0, 0x1, 0x1})
+	/Users/sayanseksenbaev/go/pkg/mod/github.com/stretchr/testify@v1.10.0/mock/mock.go:509 +0x500
+github.com/stretchr/testify/mock.(*Mock).Called(0x14000241c20, {0x140002b1be0, 0x1, 0x1})
+	/Users/sayanseksenbaev/go/pkg/mod/github.com/stretchr/testify@v1.10.0/mock/mock.go:481 +0x110
+postService/internal/service_test.(*MockCommentRepo).Create(0x14000241c20, 0x1400014fc08)
+	/Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service_test.go:30 +0x78
+postService/internal/service.(*CommentService).CreateComment(0x140000fdf38, {0x140002b1b50?, {0x100c9ea6f?, 0x140002b1b20?}})
+	/Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service.go:41 +0xa4
+postService/internal/service_test.TestCreateComment_Success(0x140002dc700)
+	/Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/comment_service_test.go:78 +0x21c
+testing.tRunner(0x140002dc700, 0x100efef18)
+	/Users/sayanseksenbaev/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.1.darwin-arm64/src/testing/testing.go:1792 +0xe4
+created by testing.(*T).Run in goroutine 1
+	/Users/sayanseksenbaev/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.1.darwin-arm64/src/testing/testing.go:1851 +0x374
+FAIL	postService/internal/service	1.263s
 ?   	postService/internal/transfer/request	[no test files]
 ?   	postService/internal/transfer/response	[no test files]
 ?   	postService/pkg/logging	[no test files]
+FAIL

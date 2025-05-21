@@ -86,8 +86,8 @@ type MinioStorage struct {
 	cfg    *config.Config
 }
 
-func NewMinioStorage(client *minio.Client) *MinioStorage {
-	return &MinioStorage{client: client}
+func NewMinioStorage(client *minio.Client, cfg *config.Config) *MinioStorage {
+	return &MinioStorage{client: client, cfg: cfg}
 }
 
 func (s *MinioStorage) UploadFile(file multipart.File, header *multipart.FileHeader) (string, error) {
