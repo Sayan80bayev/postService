@@ -53,8 +53,7 @@ func NewKafkaConsumer(config ConsumerConfig, redisClient *redis.Client, minioCli
 var logger = logging.GetLogger()
 
 func (c *KafkaConsumer) Start(ctx context.Context) {
-	err := c.consumer.SubscribeTopics(c.config.Topics, nil)
-	if err != nil {
+	if err := c.consumer.SubscribeTopics(c.config.Topics, nil); err != nil {
 		logger.Errorf("Error subscribing to topics: %v", err)
 		return
 	}
@@ -63,17 +62,17 @@ func (c *KafkaConsumer) Start(ctx context.Context) {
 
 	for {
 		select {
-		case <-ctx.Done(): // Graceful shutdown
+		case <-ctx.Done():
 			logger.Info("KafkaConsumer shutting down...")
 			return
 		default:
 			msg, err := c.consumer.ReadMessage(-1)
-			if err == nil {
-				logger.Infof("Received message: %s", string(msg.Value))
-				c.handleMessage(msg)
-			} else {
+			if err != nil {
 				logger.Warnf("KafkaConsumer error: %v", err)
+				continue
 			}
+			logger.Infof("Received message: %s", string(msg.Value))
+			c.handleMessage(msg)
 		}
 	}
 }
@@ -90,102 +89,102 @@ func (c *KafkaConsumer) Close() {
 func (c *KafkaConsumer) handleMessage(msg *kafka.Message) {
 	var event events.Event
 	if err := json.Unmarshal(msg.Value, &event); err != nil {
-		logger.Errorf("Error parsing message: %v", err)
+		logger.Errorf("Error parsing event envelope: %v", err)
 		return
 	}
 
-	lockKey := "cache:update_lock"
 	ctx := context.Background()
+	lockKey := "cache:update_lock"
 
-	// Try acquiring lock with a reasonable timeout
 	locked, err := c.redisClient.SetNX(ctx, lockKey, "1", 10*time.Second).Result()
 	if err != nil {
-		logger.Errorf("Error acquiring lock: %v", err)
+		logger.Errorf("Error acquiring Redis lock: %v", err)
 		return
 	}
 	if !locked {
-		logger.Warn("Skipping cache update: another process is still updating the cache.")
+		logger.Warn("Skipping message handling: another process holds the lock.")
 		return
 	}
-	defer c.redisClient.Del(ctx, lockKey) // Ensure lock is released
+	defer c.redisClient.Del(ctx, lockKey)
 
-	// Handle event types
 	switch event.Type {
 	case "PostCreated":
 		cache.UpdateCache(c.redisClient, c.postRepo)
+
 	case "PostUpdated":
-		var postUpdated events.PostUpdated
-		if err := json.Unmarshal(event.Data, &postUpdated); err == nil {
-			c.handlePostUpdated(postUpdated)
-		} else {
-			logger.Errorf("Error parsing PostUpdated event: %v", err)
+		var data events.PostUpdated
+		if err := json.Unmarshal(event.Data, &data); err != nil {
+			logger.Errorf("Error parsing PostUpdated: %v", err)
+			return
 		}
+		c.handlePostUpdated(data)
+
 	case "PostDeleted":
-		var postDeleted events.PostDeleted
-		if err := json.Unmarshal(event.Data, &postDeleted); err == nil {
-			c.handlePostDeleted(postDeleted)
-		} else {
-			logger.Errorf("Error parsing PostDeleted event: %v", err)
+		var data events.PostDeleted
+		if err := json.Unmarshal(event.Data, &data); err != nil {
+			logger.Errorf("Error parsing PostDeleted: %v", err)
+			return
 		}
+		c.handlePostDeleted(data)
+
 	default:
 		logger.Warnf("Unknown event type: %s", event.Type)
 	}
 }
 
 func (c *KafkaConsumer) handlePostUpdated(event events.PostUpdated) {
-	postID := event.PostID
-	newURL := event.FileURL
-	oldURL := event.OldURL
+	ctx := context.Background()
 
-	// Delete old file if it was replaced
-	if oldURL != "" && oldURL != newURL {
+	// Delete old files from MinIO
+	for _, oldURL := range event.OldURLs {
 		if err := storage.DeleteFileByURL(oldURL, c.minioClient); err != nil {
-			logger.Errorf("Error deleting old file: %v", err)
+			logger.Warnf("Failed to delete old file: %s, error: %v", oldURL, err)
 		}
 	}
 
-	// Remove outdated post from cache
-	if err := c.redisClient.Del(context.Background(), fmt.Sprintf("post:%d", postID)).Err(); err != nil {
+	if err := c.redisClient.Del(ctx, fmt.Sprintf("post:%s", event.PostID)).Err(); err != nil {
 		logger.Errorf("Error deleting post from Redis: %v", err)
 	}
 
-	// Fetch updated post from DB
-	post, err := c.postRepo.GetPostByID(postID)
+	// Refresh cache
+	post, err := c.postRepo.GetPostByID(event.PostID)
 	if err != nil {
-		logger.Errorf("Error fetching updated post: %v", err)
+		logger.Errorf("Error fetching post by ID: %v", err)
 		return
 	}
 
-	// Convert to DTO and update cache
 	postResponse := mappers.MapPostToResponse(*post)
 	jsonData, err := json.Marshal(postResponse)
 	if err != nil {
-		logger.Warnf("Could not marshal JSON for post %d: %v", postID, err)
+		logger.Warnf("Could not marshal post to JSON: %v", err)
 		return
 	}
 
-	if err := c.redisClient.Set(context.Background(), fmt.Sprintf("post:%d", postID), jsonData, 5*time.Minute).Err(); err != nil {
-		logger.Errorf("Failed to update cache for post %d: %v", postID, err)
+	if err := c.redisClient.Set(ctx, fmt.Sprintf("post:%s", event.PostID), jsonData, 5*time.Minute).Err(); err != nil {
+		logger.Errorf("Failed to update Redis cache: %v", err)
+		return
 	}
-	logger.Infof("Successfully updated cache for post: %d", postID)
+
+	logger.Infof("Post %s cache updated", event.PostID)
 }
 
 func (c *KafkaConsumer) handlePostDeleted(event events.PostDeleted) {
-	postID := event.PostID
-	imageURL := event.ImageURL
+	ctx := context.Background()
 
-	// Delete image from MinIO if it exists
-	if imageURL != "" {
-		if err := storage.DeleteFileByURL(imageURL, c.minioClient); err != nil {
-			logger.Errorf("Error deleting image from MinIO: %v", err)
+	// Delete all image and file URLs from MinIO
+	for _, url := range append(event.ImageURLs, event.FileURLs...) {
+		if err := storage.DeleteFileByURL(url, c.minioClient); err != nil {
+			logger.Warnf("Error deleting file/image from MinIO (%s): %v", url, err)
 		}
 	}
 
-	// Remove post from cache
-	if err := c.redisClient.Del(context.Background(), fmt.Sprintf("post:%d", postID)).Err(); err != nil {
+	// Delete from Redis
+	if err := c.redisClient.Del(ctx, fmt.Sprintf("post:%s", event.PostID)).Err(); err != nil {
 		logger.Errorf("Error deleting post from Redis: %v", err)
 	}
 
-	logger.Infof("Post %d deleted", postID)
+	logger.Infof("Post %s deleted and cleaned up", event.PostID)
+
+	// Rebuild full cache (optional depending on system strategy)
 	cache.UpdateCache(c.redisClient, c.postRepo)
 }

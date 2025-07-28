@@ -1,17 +1,16 @@
 package model
 
-import "gorm.io/gorm"
-
 type Post struct {
-	gorm.Model
-	ID         uint      `gorm:"primaryKey" json:"id"`
-	Title      string    `json:"title"`
-	Content    string    `json:"content"`
-	CategoryID int       `json:"category_id" gorm:"not null default -1"`
-	Category   Category  `gorm:"foreignKey:CategoryID"`                  // Связь с категорией
-	Comments   []Comment `gorm:"foreignKey:PostID"`                      // Указываем внешний ключ
-	UserID     int       `json:"user_id"`                                // ID автора поста
-	User       User      `gorm:"foreignKey:UserID" json:"user" gorm:"-"` // Prevent GORM from migrating User
-	ImageURL   string    `json:"image_url"`
-	LikeCount  int64     `json:"like_count" gorm:"default:0"`
+	ID        string   `bson:"_id" json:"id"`
+	Content   string   `bson:"content" json:"content"`
+	UserID    string   `bson:"user_id" json:"user_id"`
+	ImageURLs []string `bson:"image_urls" json:"image_urls,omitempty"`
+	FileURLs  []string `bson:"file_urls" json:"file_urls,omitempty"`
+
+	LikeCount    int64 `bson:"like_count" json:"like_count"`
+	RepostCount  int64 `bson:"repost_count" json:"repost_count"`
+	CommentCount int64 `bson:"comment_count" json:"comment_count"`
+
+	CreatedAt string `bson:"created_at" json:"created_at"`
+	UpdatedAt string `bson:"updated_at" json:"updated_at"`
 }

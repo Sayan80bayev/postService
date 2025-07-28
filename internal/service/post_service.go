@@ -20,9 +20,9 @@ import (
 type PostRepository interface {
 	CreatePost(post *model.Post) error
 	GetPosts() ([]model.Post, error)
-	GetPostByID(id int) (*model.Post, error)
+	GetPostByID(id string) (*model.Post, error)
 	UpdatePost(post *model.Post) error
-	DeletePost(id int) error
+	DeletePost(id string) error
 }
 
 type PostService struct {
@@ -65,40 +65,42 @@ func (ps *PostService) GetPosts() ([]response.PostResponse, error) {
 	return postResponses, nil
 }
 
-func (ps *PostService) GetPostByID(id int) (*response.PostResponse, error) {
-	cacheKey := fmt.Sprintf("post:%d", id)
+func (ps *PostService) GetPostByID(id string) (*response.PostResponse, error) {
+	cacheKey := fmt.Sprintf("post:%s", id)
 	var post response.PostResponse
 	if err := ps.getFromCache(cacheKey, &post); err == nil {
-		logger.Infof("Fetched post %d from cache", id)
+		logger.Infof("Fetched post %s from cache", id)
 		return &post, nil
 	}
 
 	modelPost, err := ps.repo.GetPostByID(id)
 	if err != nil {
-		logger.Errorf("Error fetching post %d: %v", id, err)
+		logger.Errorf("Error fetching post %s: %v", id, err)
 		return nil, err
 	}
 
 	post = ps.mapper.Map(*modelPost)
 	_ = ps.setToCache(cacheKey, post, 10*time.Minute)
-	logger.Infof("Fetched post %d from DB and cached", id)
+	logger.Infof("Fetched post %s from DB and cached", id)
 
 	return &post, nil
 }
 
 func (ps *PostService) CreatePost(p request.PostRequest) error {
-	imageURL, err := ps.uploadFile(p.File, p.Header)
+	imageURLs, err := ps.uploadFiles(p.Images)
+	if err != nil {
+		return err
+	}
+	fileURLs, err := ps.uploadFiles(p.Files)
 	if err != nil {
 		return err
 	}
 
 	post := &model.Post{
-		Title:      p.Title,
-		Content:    p.Content,
-		UserID:     p.UserID,
-		CategoryID: p.CategoryID,
-		ImageURL:   imageURL,
-		LikeCount:  0,
+		Content:   p.Content,
+		UserID:    p.UserID,
+		ImageURLs: imageURLs,
+		FileURLs:  fileURLs,
 	}
 
 	if err := ps.repo.CreatePost(post); err != nil {
@@ -106,68 +108,94 @@ func (ps *PostService) CreatePost(p request.PostRequest) error {
 		return err
 	}
 
-	return ps.publishEvent("PostCreated", events.PostCreated{PostID: int(post.ID)})
+	return ps.publishEvent("PostCreated", events.PostCreated{PostID: post.ID})
 }
 
-func (ps *PostService) UpdatePost(postId int, p request.PostRequest) error {
+func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
 	post, err := ps.validatePermission(p.UserID, postId)
 	if err != nil {
 		return err
 	}
 
-	oldImageURL := post.ImageURL
-	if p.File != nil && p.Header != nil {
-		if post.ImageURL, err = ps.uploadFile(p.File, p.Header); err != nil {
+	oldImageURLs := post.ImageURLs
+	oldFileURLs := post.FileURLs
+
+	if len(p.Images) > 0 {
+		post.ImageURLs, err = ps.uploadFiles(p.Images)
+		if err != nil {
+			return err
+		}
+	}
+	if len(p.Files) > 0 {
+		post.FileURLs, err = ps.uploadFiles(p.Files)
+		if err != nil {
 			return err
 		}
 	}
 
-	post.Title, post.Content, post.CategoryID = p.Title, p.Content, p.CategoryID
+	post.Content = p.Content
 
 	if err := ps.repo.UpdatePost(post); err != nil {
-		logger.Errorf("Error updating post %d: %v", postId, err)
+		logger.Errorf("Error updating post %s: %v", postId, err)
 		return err
 	}
 
-	event := events.PostUpdated{PostID: postId, FileURL: post.ImageURL, OldURL: oldImageURL}
+	event := events.PostUpdated{
+		PostID:   post.ID,
+		FileURLs: append(post.ImageURLs, post.FileURLs...),
+		OldURLs:  append(oldImageURLs, oldFileURLs...),
+	}
 	return ps.publishEvent("PostUpdated", event)
 }
 
-func (ps *PostService) DeletePost(postId, userId int) error {
+func (ps *PostService) DeletePost(postId, userId string) error {
 	post, err := ps.validatePermission(userId, postId)
 	if err != nil {
 		return err
 	}
 
 	if err := ps.repo.DeletePost(postId); err != nil {
-		logger.Errorf("Error deleting post %d: %v", postId, err)
+		logger.Errorf("Error deleting post %s: %v", postId, err)
 		return err
 	}
 
-	event := events.PostDeleted{PostID: postId, ImageURL: post.ImageURL}
+	event := events.PostDeleted{
+		PostID:    post.ID,
+		ImageURLs: post.ImageURLs,
+		FileURLs:  post.FileURLs,
+	}
 	return ps.publishEvent("PostDeleted", event)
 }
 
-func (ps *PostService) validatePermission(userId, postId int) (*model.Post, error) {
+func (ps *PostService) validatePermission(userId, postId string) (*model.Post, error) {
 	post, err := ps.repo.GetPostByID(postId)
 	if err != nil {
 		return nil, errors.New("post not found")
 	}
-	if post.User.ID != uint(userId) {
+	if post.UserID != userId {
 		return nil, errors.New("user not allowed")
 	}
 	return post, nil
 }
 
-func (ps *PostService) uploadFile(file multipart.File, header *multipart.FileHeader) (string, error) {
-	if file == nil || header == nil {
-		return "", nil
+func (ps *PostService) uploadFiles(files []*multipart.FileHeader) ([]string, error) {
+	var urls []string
+	for _, fh := range files {
+		file, err := fh.Open()
+		if err != nil {
+			logger.Errorf("Failed to open file: %v", err)
+			continue
+		}
+		defer file.Close()
+
+		url, err := ps.fileStorage.UploadFile(file, fh)
+		if err != nil {
+			logger.Errorf("Error uploading file: %v", err)
+			continue
+		}
+		urls = append(urls, url)
 	}
-	url, err := ps.fileStorage.UploadFile(file, header)
-	if err != nil {
-		logger.Errorf("Error uploading file: %v", err)
-	}
-	return url, err
+	return urls, nil
 }
 
 func (ps *PostService) getFromCache(key string, dest interface{}) error {

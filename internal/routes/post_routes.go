@@ -15,14 +15,7 @@ func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Container) {
 	minioClient := bs.Minio
 	producer := bs.Producer
 
-	repoInterface, err := bs.GetRepository("post")
-	if err != nil {
-		logger.Error("Failed to get post repository: " + err.Error())
-	}
-	postRepo, ok := repoInterface.(*repository.PostRepositoryImpl)
-	if !ok {
-		logger.Error("Invalid repository type for post")
-	}
+	postRepo := repository.GetPostRepository(bs.DB)
 
 	cacheService := service.NewCacheService(bs.Redis)
 	fileStorage := storage.NewMinioStorage(minioClient, cfg)

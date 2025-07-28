@@ -1,13 +1,11 @@
 package delivery
 
 import (
+	"github.com/gin-gonic/gin"
 	"net/http"
 	"postService/internal/config"
 	"postService/internal/service"
 	"postService/internal/transfer/request"
-	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
 type PostHandler struct {
@@ -19,28 +17,43 @@ func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostH
 	return &PostHandler{postService, cfg}
 }
 
+// CreatePost handles POST /posts
 func (h *PostHandler) CreatePost(c *gin.Context) {
-	req := request.PostRequest{}
+	var req request.PostRequest
 
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	file, header, _ := c.Request.FormFile("file")
-	req.UserID = userID.(int)
-	req.File = file
-	req.Header = header
+	userID, ok := c.Get("user_id")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	req.UserID = userID.(string)
+
+	// Parse multiple images
+	form, err := c.MultipartForm()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid multipart form"})
+		return
+	}
+
+	imageFiles := form.File["images"]
+	fileFiles := form.File["files"]
+	req.Images = imageFiles
+	req.Files = fileFiles
 
 	if err := h.postService.CreatePost(req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "Post created successfully"})
 }
 
+// GetPosts handles GET /posts
 func (h *PostHandler) GetPosts(c *gin.Context) {
 	posts, err := h.postService.GetPosts()
 	if err != nil {
@@ -51,8 +64,9 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, posts)
 }
 
+// GetPostByID handles GET /posts/:id
 func (h *PostHandler) GetPostByID(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Param("id"))
+	id := c.Param("id")
 	post, err := h.postService.GetPostByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
@@ -62,36 +76,40 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 	c.JSON(http.StatusOK, post)
 }
 
+// UpdatePost handles PUT /posts/:id
 func (h *PostHandler) UpdatePost(c *gin.Context) {
-	postID, _ := strconv.Atoi(c.Param("id"))
+	postID := c.Param("id")
 
-	req := request.PostRequest{}
-
+	var req request.PostRequest
 	if err := c.ShouldBind(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
 	}
 
-	userID, _ := c.Get("user_id")
-	file, header, _ := c.Request.FormFile("file")
-	req.UserID = userID.(int)
-	req.File = file
-	req.Header = header
+	userID, ok := c.Get("user_id")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	req.UserID = userID.(string)
+
+	form, err := c.MultipartForm()
+	if err == nil {
+		req.Images = form.File["images"]
+		req.Files = form.File["files"]
+	}
 
 	if err := h.postService.UpdatePost(postID, req); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update post: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Post updated successfully"})
 }
 
+// DeletePost handles DELETE /posts/:id
 func (h *PostHandler) DeletePost(c *gin.Context) {
-	postID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
-		return
-	}
+	postID := c.Param("id")
 
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -99,8 +117,8 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		return
 	}
 
-	if err := h.postService.DeletePost(postID, userID.(int)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete post" + ": " + err.Error()})
+	if err := h.postService.DeletePost(postID, userID.(string)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete post: " + err.Error()})
 		return
 	}
 

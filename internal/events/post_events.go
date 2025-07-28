@@ -1,16 +1,17 @@
 package events
 
 type PostCreated struct {
-	PostID int `json:"post_id"`
+	PostID string `json:"post_id"`
 }
 
 type PostUpdated struct {
-	PostID  int    `json:"post_id"`
-	FileURL string `json:"file_url"`
-	OldURL  string `json:"old_url"`
+	PostID   string   `json:"post_id"`
+	FileURLs []string `json:"file_urls"`
+	OldURLs  []string `json:"old_urls"`
 }
 
 type PostDeleted struct {
-	PostID   int    `json:"post_id"`
-	ImageURL string `json:"image_url"`
+	PostID    string   `json:"post_id"`
+	ImageURLs []string `json:"image_urls"`
+	FileURLs  []string `json:"file_urls"`
 }
