@@ -20,6 +20,9 @@ type Config struct {
 
 	KafkaBrokers []string `mapstructure:"KAFKA_BROKERS"`
 	KafkaTopic   string   `mapstructure:"KAFKA_TOPIC"`
+
+	KeycloakRealm string `mapstructure:"KEYCLOAK_REALM"`
+	KeycloakURL   string `mapstructure:"KEYCLOAK_URL"`
 }
 
 func LoadConfig() (*Config, error) {

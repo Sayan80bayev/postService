@@ -2,13 +2,13 @@ package bootstrap
 
 import (
 	"context"
-	"time"
-
+	"fmt"
 	"postService/internal/config"
 	"postService/internal/messaging"
-	"postService/internal/pkg/storage"
 	"postService/internal/repository"
+	"postService/internal/storage"
 	"postService/pkg/logging"
+	"time"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
@@ -23,6 +23,7 @@ type Container struct {
 	Producer messaging.Producer
 	Consumer messaging.Consumer
 	Config   *config.Config
+	JWKSURL  string
 }
 
 func Init() (*Container, error) {
@@ -34,26 +35,33 @@ func Init() (*Container, error) {
 		return nil, err
 	}
 
+	// Собираем JWKS URL
+	jwksURL := buildJWKSURL(cfg)
+
+	// Инициализация MongoDB
 	db, err := initMongoDatabase(cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	// Инициализация Redis
 	redisClient, err := initRedis(cfg)
 	if err != nil {
 		return nil, err
 	}
 
+	// Инициализация MinIO
 	minioClient := storage.Init(cfg)
 
+	// Kafka producer
 	producer, err := messaging.NewKafkaProducer(cfg.KafkaBrokers[0], "posts-events")
 	if err != nil {
 		logger.Fatal("Error creating Kafka producer:", err)
 		return nil, err
 	}
 
+	// Kafka consumer
 	postRepository := repository.GetPostRepository(db)
-
 	consumer, err := initKafkaConsumer(redisClient, minioClient, postRepository, cfg)
 	if err != nil {
 		return nil, err
@@ -68,7 +76,13 @@ func Init() (*Container, error) {
 		Producer: producer,
 		Consumer: consumer,
 		Config:   cfg,
+		JWKSURL:  jwksURL,
 	}, nil
+}
+
+// buildJWKSURL собирает полный путь до JWKS эндпоинта Keycloak
+func buildJWKSURL(cfg *config.Config) string {
+	return fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", cfg.KeycloakURL, cfg.KeycloakRealm)
 }
 
 func initMongoDatabase(cfg *config.Config) (*mongo.Database, error) {

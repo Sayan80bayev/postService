@@ -10,7 +10,7 @@ import (
 	"postService/internal/mappers"
 	"postService/internal/messaging"
 	"postService/internal/model"
-	"postService/internal/pkg/storage"
+	"postService/internal/storage"
 	"postService/internal/transfer/request"
 	"postService/internal/transfer/response"
 	"postService/pkg/logging"

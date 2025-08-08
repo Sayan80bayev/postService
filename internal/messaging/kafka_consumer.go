@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"postService/internal/storage"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
@@ -12,7 +13,6 @@ import (
 	"postService/internal/cache"
 	"postService/internal/events"
 	"postService/internal/mappers"
-	"postService/internal/pkg/storage"
 	"postService/internal/repository"
 	"postService/pkg/logging"
 )
