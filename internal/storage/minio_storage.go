@@ -14,8 +14,16 @@ import (
 
 var logger = logging.GetLogger()
 
+// prefix holds the base URL prefix extracted from config
+var prefix string
+
+// InitPrefix initializes the prefix variable from config
+func InitPrefix(cfg *config.Config) {
+	prefix = fmt.Sprintf("http://%s:%s/", cfg.MinioHost, cfg.MinioPort)
+}
+
 func Init(cfg *config.Config) *minio.Client {
-	endpoint := "localhost:9000"
+	endpoint := fmt.Sprintf("%s:%s", cfg.MinioHost, cfg.MinioPort)
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(cfg.AccessKey, cfg.SecretKey, ""),
 		Secure: false,
@@ -49,7 +57,7 @@ func UploadFile(file multipart.File, header *multipart.FileHeader, cfg *config.C
 		return "", errors.New("failed to upload file")
 	}
 
-	fileURL := fmt.Sprintf("http://localhost:9000/%s/%s", bucketName, objectName)
+	fileURL := fmt.Sprintf("%s%s/%s", prefix, bucketName, objectName)
 
 	return fileURL, nil
 }
@@ -59,7 +67,6 @@ func DeleteFileByURL(fileURL string, minioClient *minio.Client) error {
 		return errors.New("missing file_url parameter")
 	}
 
-	prefix := "http://localhost:9000/"
 	if !strings.HasPrefix(fileURL, prefix) {
 		return errors.New("invalid file_url format")
 	}
@@ -87,6 +94,9 @@ type MinioStorage struct {
 }
 
 func NewMinioStorage(client *minio.Client, cfg *config.Config) *MinioStorage {
+	// Initialize prefix once when creating storage
+	InitPrefix(cfg)
+
 	return &MinioStorage{client: client, cfg: cfg}
 }
 

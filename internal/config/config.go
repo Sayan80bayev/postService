@@ -7,11 +7,14 @@ import (
 )
 
 type Config struct {
-	Port        string `mapstructure:"PORT"`
-	JWTSecret   string `mapstructure:"JWT_SECRET"`
+	Port string `mapstructure:"PORT"`
+
+	MinioHost   string `mapstructure:"MINIO_HOST"`
+	MinioPort   string `mapstructure:"MINIO_PORT"`
 	MinioBucket string `mapstructure:"MINIO_BUCKET"`
 	AccessKey   string `mapstructure:"ACCESS_KEY"`
 	SecretKey   string `mapstructure:"SECRET_KEY"`
+
 	MongoURI    string `mapstructure:"MONGO_URI"`
 	MongoDBName string `mapstructure:"MONGO_DB_NAME"`
 
