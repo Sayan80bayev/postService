@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"mime/multipart"
+	"path/filepath"
 	"postService/internal/events"
 	"postService/internal/mappers"
 	"postService/internal/messaging"
@@ -14,6 +15,7 @@ import (
 	"postService/internal/transfer/request"
 	"postService/internal/transfer/response"
 	"postService/pkg/logging"
+	"strings"
 	"time"
 )
 
@@ -86,21 +88,24 @@ func (ps *PostService) GetPostByID(id string) (*response.PostResponse, error) {
 	return &post, nil
 }
 
-func (ps *PostService) CreatePost(p request.PostRequest) error {
-	imageURLs, err := ps.uploadFiles(p.Images)
-	if err != nil {
-		return err
+func extractURLs(media []model.File) []string {
+	var urls []string
+	for _, m := range media {
+		urls = append(urls, m.URLs...)
 	}
-	fileURLs, err := ps.uploadFiles(p.Files)
+	return urls
+}
+
+func (ps *PostService) CreatePost(p request.PostRequest) error {
+	media, err := ps.uploadAndCategorizeMedia(p.Media)
 	if err != nil {
 		return err
 	}
 
 	post := &model.Post{
-		Content:   p.Content,
-		UserID:    p.UserID,
-		ImageURLs: imageURLs,
-		FileURLs:  fileURLs,
+		Content: p.Content,
+		UserID:  p.UserID,
+		Media:   media,
 	}
 
 	if err := ps.repo.CreatePost(post); err != nil {
@@ -108,7 +113,9 @@ func (ps *PostService) CreatePost(p request.PostRequest) error {
 		return err
 	}
 
-	return ps.publishEvent("PostCreated", events.PostCreated{PostID: post.ID})
+	return ps.publishEvent("PostCreated", events.PostCreated{
+		PostID: post.ID,
+	})
 }
 
 func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
@@ -117,17 +124,11 @@ func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
 		return err
 	}
 
-	oldImageURLs := post.ImageURLs
-	oldFileURLs := post.FileURLs
+	mediaOldUrls := extractURLs(post.Media)
+	filesOldUrls := extractURLs(post.Files)
 
-	if len(p.Images) > 0 {
-		post.ImageURLs, err = ps.uploadFiles(p.Images)
-		if err != nil {
-			return err
-		}
-	}
-	if len(p.Files) > 0 {
-		post.FileURLs, err = ps.uploadFiles(p.Files)
+	if len(p.Media) > 0 {
+		post.Media, err = ps.uploadAndCategorizeMedia(p.Media)
 		if err != nil {
 			return err
 		}
@@ -140,12 +141,13 @@ func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
 		return err
 	}
 
-	event := events.PostUpdated{
-		PostID:   post.ID,
-		FileURLs: append(post.ImageURLs, post.FileURLs...),
-		OldURLs:  append(oldImageURLs, oldFileURLs...),
-	}
-	return ps.publishEvent("PostUpdated", event)
+	return ps.publishEvent("PostUpdated", events.PostUpdated{
+		PostID:       post.ID,
+		MediaNewURLs: extractURLs(post.Media),
+		MediaOldURLs: mediaOldUrls,
+		FilesNewURLs: extractURLs(post.Files),
+		FilesOldURLs: filesOldUrls,
+	})
 }
 
 func (ps *PostService) DeletePost(postId, userId string) error {
@@ -159,12 +161,54 @@ func (ps *PostService) DeletePost(postId, userId string) error {
 		return err
 	}
 
-	event := events.PostDeleted{
+	return ps.publishEvent("PostDeleted", events.PostDeleted{
 		PostID:    post.ID,
-		ImageURLs: post.ImageURLs,
-		FileURLs:  post.FileURLs,
+		MediaURLs: extractURLs(post.Media),
+		FilesURLs: extractURLs(post.Files),
+	})
+}
+
+func (ps *PostService) uploadAndCategorizeMedia(files []*multipart.FileHeader) ([]model.File, error) {
+	mediaMap := map[string][]string{}
+
+	for _, fh := range files {
+		file, err := fh.Open()
+		if err != nil {
+			logger.Errorf("Failed to open file: %v", err)
+			continue
+		}
+		defer file.Close()
+
+		url, err := ps.fileStorage.UploadFile(file, fh)
+		if err != nil {
+			logger.Errorf("Error uploading file: %v", err)
+			continue
+		}
+
+		mediaType := detectMediaType(fh.Filename)
+		mediaMap[mediaType] = append(mediaMap[mediaType], url)
 	}
-	return ps.publishEvent("PostDeleted", event)
+
+	var result []model.File
+	for t, urls := range mediaMap {
+		result = append(result, model.File{
+			Type: t,
+			URLs: urls,
+		})
+	}
+	return result, nil
+}
+
+func detectMediaType(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".webp":
+		return "image"
+	case ".mp4", ".mov", ".avi", ".mkv":
+		return "video"
+	default:
+		return "file"
+	}
 }
 
 func (ps *PostService) validatePermission(userId, postId string) (*model.Post, error) {

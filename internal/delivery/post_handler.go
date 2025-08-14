@@ -20,7 +20,6 @@ func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostH
 // CreatePost handles POST /posts
 func (h *PostHandler) CreatePost(c *gin.Context) {
 	var req request.PostRequest
-
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
@@ -33,17 +32,10 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	}
 	req.UserID = userID.(string)
 
-	// Parse multiple images
 	form, err := c.MultipartForm()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid multipart form"})
-		return
+	if err == nil {
+		req.Media = form.File["media"]
 	}
-
-	imageFiles := form.File["images"]
-	fileFiles := form.File["files"]
-	req.Images = imageFiles
-	req.Files = fileFiles
 
 	if err := h.postService.CreatePost(req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post: " + err.Error()})
@@ -95,10 +87,9 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 
 	form, err := c.MultipartForm()
 	if err == nil {
-		req.Images = form.File["images"]
-		req.Files = form.File["files"]
+		req.Media = form.File["media"]
 	}
-
+	
 	if err := h.postService.UpdatePost(postID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update post: " + err.Error()})
 		return

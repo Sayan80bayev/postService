@@ -135,8 +135,13 @@ func (c *KafkaConsumer) handleMessage(msg *kafka.Message) {
 func (c *KafkaConsumer) handlePostUpdated(event events.PostUpdated) {
 	ctx := context.Background()
 
-	// Delete old files from MinIO
-	for _, oldURL := range event.OldURLs {
+	for _, oldURL := range event.MediaOldURLs {
+		if err := storage.DeleteFileByURL(oldURL, c.minioClient); err != nil {
+			logger.Warnf("Failed to delete old file: %s, error: %v", oldURL, err)
+		}
+	}
+
+	for _, oldURL := range event.FilesOldURLs {
 		if err := storage.DeleteFileByURL(oldURL, c.minioClient); err != nil {
 			logger.Warnf("Failed to delete old file: %s, error: %v", oldURL, err)
 		}
@@ -146,7 +151,6 @@ func (c *KafkaConsumer) handlePostUpdated(event events.PostUpdated) {
 		logger.Errorf("Error deleting post from Redis: %v", err)
 	}
 
-	// Refresh cache
 	post, err := c.postRepo.GetPostByID(event.PostID)
 	if err != nil {
 		logger.Errorf("Error fetching post by ID: %v", err)
@@ -171,20 +175,22 @@ func (c *KafkaConsumer) handlePostUpdated(event events.PostUpdated) {
 func (c *KafkaConsumer) handlePostDeleted(event events.PostDeleted) {
 	ctx := context.Background()
 
-	// Delete all image and file URLs from MinIO
-	for _, url := range append(event.ImageURLs, event.FileURLs...) {
+	for _, url := range event.MediaURLs {
 		if err := storage.DeleteFileByURL(url, c.minioClient); err != nil {
-			logger.Warnf("Error deleting file/image from MinIO (%s): %v", url, err)
+			logger.Warnf("Error deleting file from MinIO (%s): %v", url, err)
 		}
 	}
 
-	// Delete from Redis
+	for _, url := range event.FilesURLs {
+		if err := storage.DeleteFileByURL(url, c.minioClient); err != nil {
+			logger.Warnf("Error deleting file from MinIO (%s): %v", url, err)
+		}
+	}
+
 	if err := c.redisClient.Del(ctx, fmt.Sprintf("post:%s", event.PostID)).Err(); err != nil {
 		logger.Errorf("Error deleting post from Redis: %v", err)
 	}
 
 	logger.Infof("Post %s deleted and cleaned up", event.PostID)
-
-	// Rebuild full cache (optional depending on system strategy)
 	cache.UpdateCache(c.redisClient, c.postRepo)
 }

@@ -7,6 +7,6 @@ type PostRequest struct {
 	UserID  string `json:"user_id"` // UUID
 
 	// Arrays of files for images and other files
-	Images []*multipart.FileHeader `form:"images"` // multiple images
-	Files  []*multipart.FileHeader `form:"files"`  // other files
+	Media []*multipart.FileHeader `form:"media"` // multiple images
+	Files []*multipart.FileHeader `form:"files"`
 }

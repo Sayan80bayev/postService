@@ -104,8 +104,7 @@ func TestPostService_CreatePost_Success(t *testing.T) {
 	req := request.PostRequest{
 		Content: "Hello world",
 		UserID:  "user123",
-		Images:  []*multipart.FileHeader{},
-		Files:   []*multipart.FileHeader{},
+		Media:   []*multipart.FileHeader{},
 	}
 
 	repo.On("CreatePost", mock.Anything).Return(nil)
@@ -174,20 +173,34 @@ func TestPostService_DeletePost_Success(t *testing.T) {
 	service := NewPostService(repo, storage, cache, producer)
 
 	post := &model.Post{
-		ID:        "1",
-		UserID:    "user123",
-		ImageURLs: []string{"img1.jpg"},
-		FileURLs:  []string{"file1.pdf"},
+		ID:     "1",
+		UserID: "user123",
+		Media: []model.File{
+			{
+				Type: "image",
+				URLs: []string{"img1.jpg", "img2.jpg"},
+			},
+		},
+		Files: []model.File{
+			{
+				Type: "pdf",
+				URLs: []string{"doc1.pdf"},
+			},
+		},
 	}
 
 	repo.On("GetPostByID", "1").Return(post, nil)
 	repo.On("DeletePost", "1").Return(nil)
+
 	producer.On("Produce", "PostDeleted", events.PostDeleted{
 		PostID:    "1",
-		ImageURLs: post.ImageURLs,
-		FileURLs:  post.FileURLs,
+		MediaURLs: []string{"img1.jpg", "img2.jpg"},
+		FilesURLs: []string{"doc1.pdf"},
 	}).Return(nil)
 
 	err := service.DeletePost("1", "user123")
 	assert.NoError(t, err)
+
+	repo.AssertExpectations(t)
+	producer.AssertExpectations(t)
 }

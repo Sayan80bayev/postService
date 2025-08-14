@@ -14,12 +14,28 @@ func NewPostMapper() *PostMapper {
 }
 
 func MapPostToResponse(post model.Post) response.PostResponse {
+	var mediaResponses []response.FilesResponse
+	for _, m := range post.Media {
+		mediaResponses = append(mediaResponses, response.FilesResponse{
+			Type: m.Type,
+			URLs: m.URLs,
+		})
+	}
+
+	var filesResponses []response.FilesResponse
+	for _, m := range post.Media {
+		filesResponses = append(filesResponses, response.FilesResponse{
+			Type: m.Type,
+			URLs: m.URLs,
+		})
+	}
+
 	return response.PostResponse{
 		ID:           post.ID,
 		Content:      post.Content,
 		UserID:       post.UserID,
-		ImageURLs:    post.ImageURLs,
-		FileURLs:     post.FileURLs,
+		Media:        mediaResponses,
+		Files:        filesResponses,
 		LikeCount:    post.LikeCount,
 		RepostCount:  post.RepostCount,
 		CommentCount: post.CommentCount,
