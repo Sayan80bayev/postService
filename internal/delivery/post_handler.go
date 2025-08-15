@@ -37,6 +37,11 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		req.Media = form.File["media"]
 	}
 
+	form, err = c.MultipartForm()
+	if err == nil {
+		req.Files = form.File["files"]
+	}
+
 	if err := h.postService.CreatePost(req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post: " + err.Error()})
 		return
@@ -89,7 +94,12 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 	if err == nil {
 		req.Media = form.File["media"]
 	}
-	
+
+	form, err = c.MultipartForm()
+	if err == nil {
+		req.Files = form.File["files"]
+	}
+
 	if err := h.postService.UpdatePost(postID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update post: " + err.Error()})
 		return
