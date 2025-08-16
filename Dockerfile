@@ -31,7 +31,6 @@ WORKDIR /root/
 COPY --from=builder /usr/local/lib/librdkafka* /usr/local/lib/
 COPY --from=builder /app/app .
 COPY --from=builder /app/config ./config
-COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/internal/bootstrap ./internal
 
 ENV LD_LIBRARY_PATH=/usr/local/lib

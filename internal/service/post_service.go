@@ -97,7 +97,12 @@ func extractURLs(media []model.File) []string {
 }
 
 func (ps *PostService) CreatePost(p request.PostRequest) error {
-	media, err := ps.uploadAndCategorizeMedia(p.Media)
+	files, err := ps.uploadAndCategorizeData(p.Files)
+	if err != nil {
+		return err
+	}
+
+	media, err := ps.uploadAndCategorizeData(p.Media)
 	if err != nil {
 		return err
 	}
@@ -106,6 +111,7 @@ func (ps *PostService) CreatePost(p request.PostRequest) error {
 		Content: p.Content,
 		UserID:  p.UserID,
 		Media:   media,
+		Files:   files,
 	}
 
 	if err := ps.repo.CreatePost(post); err != nil {
@@ -128,10 +134,21 @@ func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
 	filesOldUrls := extractURLs(post.Files)
 
 	if len(p.Media) > 0 {
-		post.Media, err = ps.uploadAndCategorizeMedia(p.Media)
+		post.Media, err = ps.uploadAndCategorizeData(p.Media)
 		if err != nil {
 			return err
 		}
+	} else {
+		post.Media = nil
+	}
+
+	if len(p.Files) > 0 {
+		post.Files, err = ps.uploadAndCategorizeData(p.Files)
+		if err != nil {
+			return err
+		}
+	} else {
+		post.Files = nil
 	}
 
 	post.Content = p.Content
@@ -168,7 +185,7 @@ func (ps *PostService) DeletePost(postId, userId string) error {
 	})
 }
 
-func (ps *PostService) uploadAndCategorizeMedia(files []*multipart.FileHeader) ([]model.File, error) {
+func (ps *PostService) uploadAndCategorizeData(files []*multipart.FileHeader) ([]model.File, error) {
 	mediaMap := map[string][]string{}
 
 	for _, fh := range files {
@@ -185,7 +202,7 @@ func (ps *PostService) uploadAndCategorizeMedia(files []*multipart.FileHeader) (
 			continue
 		}
 
-		mediaType := detectMediaType(fh.Filename)
+		mediaType := detectDataType(fh.Filename)
 		mediaMap[mediaType] = append(mediaMap[mediaType], url)
 	}
 
@@ -199,7 +216,7 @@ func (ps *PostService) uploadAndCategorizeMedia(files []*multipart.FileHeader) (
 	return result, nil
 }
 
-func detectMediaType(filename string) string {
+func detectDataType(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 	switch ext {
 	case ".jpg", ".jpeg", ".png", ".gif", ".webp":
@@ -220,26 +237,6 @@ func (ps *PostService) validatePermission(userId, postId string) (*model.Post, e
 		return nil, errors.New("user not allowed")
 	}
 	return post, nil
-}
-
-func (ps *PostService) uploadFiles(files []*multipart.FileHeader) ([]string, error) {
-	var urls []string
-	for _, fh := range files {
-		file, err := fh.Open()
-		if err != nil {
-			logger.Errorf("Failed to open file: %v", err)
-			continue
-		}
-		defer file.Close()
-
-		url, err := ps.fileStorage.UploadFile(file, fh)
-		if err != nil {
-			logger.Errorf("Error uploading file: %v", err)
-			continue
-		}
-		urls = append(urls, url)
-	}
-	return urls, nil
 }
 
 func (ps *PostService) getFromCache(key string, dest interface{}) error {

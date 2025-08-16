@@ -23,7 +23,7 @@ func MapPostToResponse(post model.Post) response.PostResponse {
 	}
 
 	var filesResponses []response.FilesResponse
-	for _, m := range post.Media {
+	for _, m := range post.Files {
 		filesResponses = append(filesResponses, response.FilesResponse{
 			Type: m.Type,
 			URLs: m.URLs,

@@ -11,7 +11,7 @@ type Post struct {
 	UserID  string `bson:"user_id" json:"user_id"`
 
 	Media []File `bson:"media" json:"media,omitempty"`
-	Files []File `bson:"media" json:"media,omitempty"`
+	Files []File `bson:"files" json:"files,omitempty"`
 
 	LikeCount    int64 `bson:"like_count" json:"like_count"`
 	RepostCount  int64 `bson:"repost_count" json:"repost_count"`
