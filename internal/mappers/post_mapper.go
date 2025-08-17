@@ -1,12 +1,13 @@
 package mappers
 
 import (
+	"github.com/Sayan80bayev/go-project/pkg/mapper"
 	"postService/internal/model"
 	"postService/internal/transfer/response"
 )
 
 type PostMapper struct {
-	MapFunc[model.Post, response.PostResponse]
+	mapper.MapFunc[model.Post, response.PostResponse]
 }
 
 func NewPostMapper() *PostMapper {

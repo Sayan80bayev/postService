@@ -5,16 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	caching "github.com/Sayan80bayev/go-project/pkg/caching"
+	"github.com/Sayan80bayev/go-project/pkg/logging"
+	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
 	"mime/multipart"
 	"path/filepath"
 	"postService/internal/events"
 	"postService/internal/mappers"
 	"postService/internal/messaging"
 	"postService/internal/model"
-	"postService/internal/storage"
 	"postService/internal/transfer/request"
 	"postService/internal/transfer/response"
-	"postService/pkg/logging"
 	"strings"
 	"time"
 )
@@ -29,7 +30,7 @@ type PostRepository interface {
 
 type PostService struct {
 	repo         PostRepository
-	cacheService CacheService
+	cacheService caching.CacheService
 	fileStorage  storage.FileStorage
 	producer     messaging.Producer
 	mapper       *mappers.PostMapper
@@ -37,7 +38,7 @@ type PostService struct {
 
 var logger = logging.GetLogger()
 
-func NewPostService(repo PostRepository, fileStorage storage.FileStorage, cacheService CacheService, producer messaging.Producer) *PostService {
+func NewPostService(repo PostRepository, fileStorage storage.FileStorage, cacheService caching.CacheService, producer messaging.Producer) *PostService {
 	return &PostService{
 		repo:         repo,
 		fileStorage:  fileStorage,

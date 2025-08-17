@@ -3,11 +3,11 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"github.com/Sayan80bayev/go-project/pkg/logging"
+	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
 	"postService/internal/config"
 	"postService/internal/messaging"
 	"postService/internal/repository"
-	"postService/internal/storage"
-	"postService/pkg/logging"
 	"time"
 
 	"github.com/minio/minio-go/v7"
@@ -51,7 +51,13 @@ func Init() (*Container, error) {
 	}
 
 	// Инициализация MinIO
-	minioClient := storage.Init(cfg)
+	minioClient := storage.Init(&storage.MinioConfig{
+		Bucket:    cfg.MinioBucket,
+		Host:      cfg.MinioHost,
+		AccessKey: cfg.AccessKey,
+		SecretKey: cfg.SecretKey,
+		Port:      cfg.MinioPort,
+	})
 
 	// Kafka producer
 	producer, err := messaging.NewKafkaProducer(cfg.KafkaBrokers[0], "posts-events")

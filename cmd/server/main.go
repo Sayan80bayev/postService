@@ -2,9 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"postService/internal/bootstrap"
-
-	"postService/pkg/logging"
 
 	"github.com/gin-gonic/gin"
 	"postService/internal/routes"

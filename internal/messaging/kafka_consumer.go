@@ -4,9 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"postService/internal/storage"
+	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
 	"time"
 
+	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/minio/minio-go/v7"
 	"github.com/redis/go-redis/v9"
@@ -14,7 +15,6 @@ import (
 	"postService/internal/events"
 	"postService/internal/mappers"
 	"postService/internal/repository"
-	"postService/pkg/logging"
 )
 
 type ConsumerConfig struct {
