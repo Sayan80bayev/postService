@@ -1,9 +1,7 @@
 package routes
 
 import (
-	caching "github.com/Sayan80bayev/go-project/pkg/caching"
 	"github.com/Sayan80bayev/go-project/pkg/middleware"
-	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
 	"github.com/gin-gonic/gin"
 	"postService/internal/bootstrap"
 	"postService/internal/delivery"
@@ -13,20 +11,13 @@ import (
 
 func SetupPostRoutes(r *gin.Engine, bs *bootstrap.Container) {
 	cfg := bs.Config
-	minioClient := bs.Minio
+	minio := bs.Minio
+	redis := bs.Redis
 	producer := bs.Producer
 
 	postRepo := repository.GetPostRepository(bs.DB)
-	cacheService := caching.NewCacheService(bs.Redis)
-	fileStorage := storage.NewMinioStorage(minioClient, &storage.MinioConfig{
-		Bucket:    cfg.MinioBucket,
-		Host:      cfg.MinioHost,
-		AccessKey: cfg.AccessKey,
-		SecretKey: cfg.SecretKey,
-		Port:      cfg.MinioPort,
-	})
 
-	postService := service.NewPostService(postRepo, fileStorage, cacheService, producer)
+	postService := service.NewPostService(postRepo, minio, redis, producer)
 	postHandler := delivery.NewPostHandler(postService, cfg)
 
 	r.GET("api/v1/posts", postHandler.GetPosts)

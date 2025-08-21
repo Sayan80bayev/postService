@@ -3,8 +3,8 @@ package cache
 import (
 	"context"
 	"encoding/json"
+	"github.com/Sayan80bayev/go-project/pkg/caching"
 	"github.com/Sayan80bayev/go-project/pkg/logging"
-	"github.com/redis/go-redis/v9"
 	"postService/internal/mappers"
 	"postService/internal/model"
 	"time"
@@ -16,7 +16,7 @@ type PostCacheRepository interface {
 	GetPosts() ([]model.Post, error)
 }
 
-func UpdateCache(redis *redis.Client, repo PostCacheRepository) {
+func UpdateCache(cacheService caching.CacheService, repo PostCacheRepository) {
 	ctx := context.Background()
 	mapper := mappers.PostMapper{MapFunc: mappers.MapPostToResponse}
 
@@ -33,6 +33,10 @@ func UpdateCache(redis *redis.Client, repo PostCacheRepository) {
 		return
 	}
 
-	redis.Set(ctx, "posts:list", jsonData, 5*time.Minute)
+	if err := cacheService.Set(ctx, "posts:list", jsonData, 5*time.Minute); err != nil {
+		logger.Errorf("Failed to set posts:list in cache: %v", err)
+		return
+	}
+
 	logger.Info("✅ Cache updated successfully!")
 }

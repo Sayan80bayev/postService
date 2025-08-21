@@ -3,23 +3,23 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"github.com/Sayan80bayev/go-project/pkg/caching"
 	"github.com/Sayan80bayev/go-project/pkg/logging"
+	"github.com/Sayan80bayev/go-project/pkg/messaging"
 	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
 	"postService/internal/config"
-	"postService/internal/messaging"
 	"postService/internal/repository"
+	"postService/internal/service"
 	"time"
 
-	"github.com/minio/minio-go/v7"
-	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Container struct {
 	DB       *mongo.Database
-	Redis    *redis.Client
-	Minio    *minio.Client
+	Redis    caching.CacheService
+	Minio    storage.FileStorage
 	Producer messaging.Producer
 	Consumer messaging.Consumer
 	Config   *config.Config
@@ -45,30 +45,25 @@ func Init() (*Container, error) {
 	}
 
 	// Инициализация Redis
-	redisClient, err := initRedis(cfg)
+	cacheService, err := initRedis(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	// Инициализация MinIO
-	minioClient := storage.Init(&storage.MinioConfig{
-		Bucket:    cfg.MinioBucket,
-		Host:      cfg.MinioHost,
-		AccessKey: cfg.AccessKey,
-		SecretKey: cfg.SecretKey,
-		Port:      cfg.MinioPort,
-	})
-
 	// Kafka producer
 	producer, err := messaging.NewKafkaProducer(cfg.KafkaBrokers[0], "posts-events")
 	if err != nil {
-		logger.Fatal("Error creating Kafka producer:", err)
+		return nil, err
+	}
+
+	fileStorage, err := initMinio(cfg)
+	if err != nil {
 		return nil, err
 	}
 
 	// Kafka consumer
 	postRepository := repository.GetPostRepository(db)
-	consumer, err := initKafkaConsumer(redisClient, minioClient, postRepository, cfg)
+	consumer, err := initKafkaConsumer(cacheService, fileStorage, postRepository, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +72,7 @@ func Init() (*Container, error) {
 
 	return &Container{
 		DB:       db,
-		Redis:    redisClient,
-		Minio:    minioClient,
+		Redis:    cacheService,
 		Producer: producer,
 		Consumer: consumer,
 		Config:   cfg,
@@ -114,36 +108,55 @@ func initMongoDatabase(cfg *config.Config) (*mongo.Database, error) {
 	return client.Database(cfg.MongoDBName), nil
 }
 
-func initRedis(cfg *config.Config) (*redis.Client, error) {
+func initRedis(cfg *config.Config) (*caching.RedisService, error) {
 	logger := logging.GetLogger()
-
-	client := redis.NewClient(&redis.Options{
+	redisCache, err := caching.NewRedisService(caching.RedisConfig{
+		DB:       0,
 		Addr:     cfg.RedisAddr,
 		Password: cfg.RedisPass,
-		DB:       0,
 	})
 
-	ctx := context.Background()
-	if _, err := client.Ping(ctx).Result(); err != nil {
-		logger.Fatal("Error connecting to Redis:", err)
-		return nil, err
+	if err != nil {
+		return nil, fmt.Errorf("redis connection failed: %w", err)
 	}
 
-	return client, nil
+	logger.Info("Redis connected")
+	return redisCache, nil
 }
 
-func initKafkaConsumer(redisClient *redis.Client, minioClient *minio.Client, postRepo *repository.PostRepositoryImpl, cfg *config.Config) (*messaging.KafkaConsumer, error) {
+func initMinio(cfg *config.Config) (storage.FileStorage, error) {
+	logger := logging.GetLogger()
+
+	minioCfg := &storage.MinioConfig{
+		Bucket:    cfg.MinioBucket,
+		Host:      cfg.MinioHost,
+		AccessKey: cfg.AccessKey,
+		SecretKey: cfg.SecretKey,
+		Port:      cfg.MinioPort,
+	}
+
+	fs, err := storage.NewMinioStorage(minioCfg)
+	if err != nil {
+		return nil, fmt.Errorf("minio init failed: %w", err)
+	}
+
+	logger.Infof("Minio connected: bucket=%s host=%s", cfg.MinioBucket, cfg.MinioHost)
+	return fs, nil
+}
+
+func initKafkaConsumer(cacheService caching.CacheService, fileService storage.FileStorage, postRepo *repository.PostRepositoryImpl, cfg *config.Config) (*messaging.KafkaConsumer, error) {
 	logging.GetLogger().Info("Kafka broker: ", cfg.KafkaBrokers[0])
 	consumer, err := messaging.NewKafkaConsumer(messaging.ConsumerConfig{
 		BootstrapServers: cfg.KafkaBrokers[0],
 		GroupID:          "post-group",
 		Topics:           []string{"posts-events"},
-	}, redisClient, minioClient, postRepo)
+	})
 
 	if err != nil {
 		logging.GetLogger().Fatal("Error initializing Kafka consumer:", err)
 		return nil, err
 	}
 
+	consumer.RegisterHandler("PostUpdated", service.PostUpdatedHandler(cacheService, fileService, postRepo))
 	return consumer, nil
 }
