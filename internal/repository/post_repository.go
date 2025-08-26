@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"postService/internal/model"
@@ -16,22 +15,14 @@ type PostRepositoryImpl struct {
 	collection *mongo.Collection
 }
 
-var (
-	postRepoInstance *PostRepositoryImpl
-	once             sync.Once
-)
-
-func GetPostRepository(db *mongo.Database) *PostRepositoryImpl {
-	once.Do(func() {
-		postRepoInstance = &PostRepositoryImpl{
-			collection: db.Collection("posts"),
-		}
-	})
-	return postRepoInstance
+func NewPostRepository(db *mongo.Database) *PostRepositoryImpl {
+	return &PostRepositoryImpl{
+		collection: db.Collection("posts"),
+	}
 }
 
 func (r *PostRepositoryImpl) CreatePost(post *model.Post) error {
-	post.ID = uuid.New().String()
+	post.ID = uuid.New()
 	post.CreatedAt = time.Now().Format(time.RFC3339)
 	post.UpdatedAt = post.CreatedAt
 
@@ -53,7 +44,7 @@ func (r *PostRepositoryImpl) GetPosts() ([]model.Post, error) {
 	return posts, nil
 }
 
-func (r *PostRepositoryImpl) GetPostByID(id string) (*model.Post, error) {
+func (r *PostRepositoryImpl) GetPostByID(id uuid.UUID) (*model.Post, error) {
 	var post model.Post
 	err := r.collection.FindOne(context.TODO(), bson.M{"_id": id}).Decode(&post)
 	if err != nil {
@@ -70,7 +61,7 @@ func (r *PostRepositoryImpl) UpdatePost(post *model.Post) error {
 	return err
 }
 
-func (r *PostRepositoryImpl) DeletePost(id string) error {
+func (r *PostRepositoryImpl) DeletePost(id uuid.UUID) error {
 	_, err := r.collection.DeleteOne(context.TODO(), bson.M{"_id": id})
 	return err
 }

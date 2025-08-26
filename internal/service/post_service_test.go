@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"mime/multipart"
 	"postService/internal/events"
@@ -59,7 +60,7 @@ func (m *MockPostRepo) GetPosts() ([]model.Post, error) {
 	return args.Get(0).([]model.Post), args.Error(1)
 }
 
-func (m *MockPostRepo) GetPostByID(id string) (*model.Post, error) {
+func (m *MockPostRepo) GetPostByID(id uuid.UUID) (*model.Post, error) {
 	args := m.Called(id)
 	return args.Get(0).(*model.Post), args.Error(1)
 }
@@ -68,7 +69,7 @@ func (m *MockPostRepo) UpdatePost(post *model.Post) error {
 	return m.Called(post).Error(0)
 }
 
-func (m *MockPostRepo) DeletePost(id string) error {
+func (m *MockPostRepo) DeletePost(id uuid.UUID) error {
 	return m.Called(id).Error(0)
 }
 
@@ -91,6 +92,11 @@ func (m *MockProducer) Produce(eventType string, event interface{}) error {
 
 func (m *MockProducer) Close() {}
 
+var (
+	postID = uuid.New()
+	userID = uuid.New()
+)
+
 // Tests
 
 func TestPostService_CreatePost_Success(t *testing.T) {
@@ -103,7 +109,7 @@ func TestPostService_CreatePost_Success(t *testing.T) {
 
 	req := request.PostRequest{
 		Content: "Hello world",
-		UserID:  "user123",
+		UserID:  uuid.New(),
 		Media:   []*multipart.FileHeader{},
 	}
 
@@ -125,7 +131,7 @@ func TestPostService_GetPosts_CacheMiss_FetchFromRepo(t *testing.T) {
 	service := NewPostService(repo, storage, cache, producer)
 
 	cache.On("Get", mock.Anything, "posts:list").Return("", errors.New("cache miss"))
-	repo.On("GetPosts").Return([]model.Post{{ID: "1", Content: "Test", UserID: "u1"}}, nil)
+	repo.On("GetPosts").Return([]model.Post{{ID: postID, Content: "Test", UserID: userID}}, nil)
 	cache.On("Set", mock.Anything, "posts:list", mock.Anything, mock.Anything).Return(nil)
 
 	posts, err := service.GetPosts()
@@ -138,16 +144,16 @@ func TestPostService_GetPostByID_CacheMiss(t *testing.T) {
 	cache := new(MockCache)
 	storage := new(MockStorage)
 	producer := new(MockProducer)
-
+	cacheKey := "post:" + postID.String()
 	service := NewPostService(repo, storage, cache, producer)
 
-	cache.On("Get", mock.Anything, "post:123").Return("", errors.New("cache miss"))
-	repo.On("GetPostByID", "123").Return(&model.Post{ID: "123", UserID: "u1"}, nil)
-	cache.On("Set", mock.Anything, "post:123", mock.Anything, mock.Anything).Return(nil)
+	cache.On("Get", mock.Anything, cacheKey).Return("", errors.New("cache miss"))
+	repo.On("GetPostByID", postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
+	cache.On("Set", mock.Anything, cacheKey, mock.Anything, mock.Anything).Return(nil)
 
-	post, err := service.GetPostByID("123")
+	post, err := service.GetPostByID(postID)
 	assert.NoError(t, err)
-	assert.Equal(t, "123", post.ID)
+	assert.Equal(t, postID, post.ID)
 }
 
 func TestPostService_DeletePost_PermissionDenied(t *testing.T) {
@@ -155,12 +161,12 @@ func TestPostService_DeletePost_PermissionDenied(t *testing.T) {
 	cache := new(MockCache)
 	storage := new(MockStorage)
 	producer := new(MockProducer)
-
+	userID2 := uuid.New()
 	service := NewPostService(repo, storage, cache, producer)
 
-	repo.On("GetPostByID", "1").Return(&model.Post{ID: "1", UserID: "someone_else"}, nil)
+	repo.On("GetPostByID", postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
 
-	err := service.DeletePost("1", "user123")
+	err := service.DeletePost(postID, userID2)
 	assert.EqualError(t, err, "user not allowed")
 }
 
@@ -173,8 +179,8 @@ func TestPostService_DeletePost_Success(t *testing.T) {
 	service := NewPostService(repo, storage, cache, producer)
 
 	post := &model.Post{
-		ID:     "1",
-		UserID: "user123",
+		ID:     postID,
+		UserID: userID,
 		Media: []model.File{
 			{
 				Type: "image",
@@ -189,16 +195,16 @@ func TestPostService_DeletePost_Success(t *testing.T) {
 		},
 	}
 
-	repo.On("GetPostByID", "1").Return(post, nil)
-	repo.On("DeletePost", "1").Return(nil)
+	repo.On("GetPostByID", postID).Return(post, nil)
+	repo.On("DeletePost", postID).Return(nil)
 
 	producer.On("Produce", "PostDeleted", events.PostDeleted{
-		PostID:    "1",
+		PostID:    postID,
 		MediaURLs: []string{"img1.jpg", "img2.jpg"},
 		FilesURLs: []string{"doc1.pdf"},
 	}).Return(nil)
 
-	err := service.DeletePost("1", "user123")
+	err := service.DeletePost(postID, userID)
 	assert.NoError(t, err)
 
 	repo.AssertExpectations(t)

@@ -9,6 +9,7 @@ import (
 	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"github.com/Sayan80bayev/go-project/pkg/messaging"
 	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
+	"github.com/google/uuid"
 	"mime/multipart"
 	"path/filepath"
 	"postService/internal/events"
@@ -23,9 +24,9 @@ import (
 type PostRepository interface {
 	CreatePost(post *model.Post) error
 	GetPosts() ([]model.Post, error)
-	GetPostByID(id string) (*model.Post, error)
+	GetPostByID(id uuid.UUID) (*model.Post, error)
 	UpdatePost(post *model.Post) error
-	DeletePost(id string) error
+	DeletePost(id uuid.UUID) error
 }
 
 type PostService struct {
@@ -68,7 +69,7 @@ func (ps *PostService) GetPosts() ([]response.PostResponse, error) {
 	return postResponses, nil
 }
 
-func (ps *PostService) GetPostByID(id string) (*response.PostResponse, error) {
+func (ps *PostService) GetPostByID(id uuid.UUID) (*response.PostResponse, error) {
 	cacheKey := fmt.Sprintf("post:%s", id)
 	var post response.PostResponse
 	if err := ps.getFromCache(cacheKey, &post); err == nil {
@@ -125,7 +126,7 @@ func (ps *PostService) CreatePost(p request.PostRequest) error {
 	})
 }
 
-func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
+func (ps *PostService) UpdatePost(postId uuid.UUID, p request.PostRequest) error {
 	post, err := ps.validatePermission(p.UserID, postId)
 	if err != nil {
 		return err
@@ -168,7 +169,7 @@ func (ps *PostService) UpdatePost(postId string, p request.PostRequest) error {
 	})
 }
 
-func (ps *PostService) DeletePost(postId, userId string) error {
+func (ps *PostService) DeletePost(postId, userId uuid.UUID) error {
 	post, err := ps.validatePermission(userId, postId)
 	if err != nil {
 		return err
@@ -229,7 +230,7 @@ func detectDataType(filename string) string {
 	}
 }
 
-func (ps *PostService) validatePermission(userId, postId string) (*model.Post, error) {
+func (ps *PostService) validatePermission(userId, postId uuid.UUID) (*model.Post, error) {
 	post, err := ps.repo.GetPostByID(postId)
 	if err != nil {
 		return nil, errors.New("post not found")

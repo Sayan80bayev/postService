@@ -60,7 +60,7 @@ func PostUpdatedHandler(
 		}
 
 		// update cache
-		if err := cacheService.Set(ctx, fmt.Sprintf("post:%s", e.PostID), jsonData, 5*time.Minute); err != nil {
+		if err = cacheService.Set(ctx, fmt.Sprintf("post:%s", e.PostID), jsonData, 5*time.Minute); err != nil {
 			logger.Errorf("Failed to update cache: %v", err)
 			return nil
 		}

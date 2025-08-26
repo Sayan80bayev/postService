@@ -2,6 +2,7 @@ package delivery
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 	"postService/internal/config"
 	"postService/internal/service"
@@ -30,7 +31,7 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	req.UserID = userID.(string)
+	req.UserID = userID.(uuid.UUID)
 
 	form, err := c.MultipartForm()
 	if err == nil {
@@ -64,7 +65,11 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 // GetPostByID handles GET /posts/:id
 func (h *PostHandler) GetPostByID(c *gin.Context) {
 	id := c.Param("id")
-	post, err := h.postService.GetPostByID(id)
+	idUUID, err := uuid.Parse(id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not parse post id: " + err.Error()})
+	}
+	post, err := h.postService.GetPostByID(idUUID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
@@ -76,6 +81,10 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 // UpdatePost handles PUT /posts/:id
 func (h *PostHandler) UpdatePost(c *gin.Context) {
 	postID := c.Param("id")
+	postIDUUID, err := uuid.Parse(postID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not parse post id: " + err.Error()})
+	}
 
 	var req request.PostRequest
 	if err := c.ShouldBind(&req); err != nil {
@@ -88,7 +97,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
-	req.UserID = userID.(string)
+	req.UserID = userID.(uuid.UUID)
 
 	form, err := c.MultipartForm()
 	if err == nil {
@@ -100,7 +109,7 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 		req.Files = form.File["files"]
 	}
 
-	if err := h.postService.UpdatePost(postID, req); err != nil {
+	if err := h.postService.UpdatePost(postIDUUID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update post: " + err.Error()})
 		return
 	}
@@ -111,6 +120,10 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 // DeletePost handles DELETE /posts/:id
 func (h *PostHandler) DeletePost(c *gin.Context) {
 	postID := c.Param("id")
+	postIDUUID, err := uuid.Parse(postID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Could not parse post id: " + err.Error()})
+	}
 
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -118,7 +131,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		return
 	}
 
-	if err := h.postService.DeletePost(postID, userID.(string)); err != nil {
+	if err = h.postService.DeletePost(postIDUUID, userID.(uuid.UUID)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete post: " + err.Error()})
 		return
 	}

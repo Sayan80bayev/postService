@@ -17,13 +17,14 @@ import (
 )
 
 type Container struct {
-	DB       *mongo.Database
-	Redis    caching.CacheService
-	Minio    storage.FileStorage
-	Producer messaging.Producer
-	Consumer messaging.Consumer
-	Config   *config.Config
-	JWKSURL  string
+	DB             *mongo.Database
+	Redis          caching.CacheService
+	FileStorage    storage.FileStorage
+	Producer       messaging.Producer
+	Consumer       messaging.Consumer
+	Config         *config.Config
+	PostRepository service.PostRepository
+	JWKSurl        string
 }
 
 func Init() (*Container, error) {
@@ -62,7 +63,7 @@ func Init() (*Container, error) {
 	}
 
 	// Kafka consumer
-	postRepository := repository.GetPostRepository(db)
+	postRepository := repository.NewPostRepository(db)
 	consumer, err := initKafkaConsumer(cacheService, fileStorage, postRepository, cfg)
 	if err != nil {
 		return nil, err
@@ -71,12 +72,13 @@ func Init() (*Container, error) {
 	logger.Info("✅ Dependencies initialized successfully")
 
 	return &Container{
-		DB:       db,
-		Redis:    cacheService,
-		Producer: producer,
-		Consumer: consumer,
-		Config:   cfg,
-		JWKSURL:  jwksURL,
+		DB:             db,
+		Redis:          cacheService,
+		Producer:       producer,
+		Consumer:       consumer,
+		Config:         cfg,
+		JWKSurl:        jwksURL,
+		PostRepository: postRepository,
 	}, nil
 }
 
@@ -140,7 +142,7 @@ func initMinio(cfg *config.Config) (storage.FileStorage, error) {
 		return nil, fmt.Errorf("minio init failed: %w", err)
 	}
 
-	logger.Infof("Minio connected: bucket=%s host=%s", cfg.MinioBucket, cfg.MinioHost)
+	logger.Infof("FileStorage connected: bucket=%s host=%s", cfg.MinioBucket, cfg.MinioHost)
 	return fs, nil
 }
 
@@ -149,7 +151,7 @@ func initKafkaConsumer(cacheService caching.CacheService, fileService storage.Fi
 	consumer, err := messaging.NewKafkaConsumer(messaging.ConsumerConfig{
 		BootstrapServers: cfg.KafkaBrokers[0],
 		GroupID:          "post-group",
-		Topics:           []string{"posts-events"},
+		Topics:           []string{cfg.KafkaTopic},
 	})
 
 	if err != nil {
@@ -158,5 +160,6 @@ func initKafkaConsumer(cacheService caching.CacheService, fileService storage.Fi
 	}
 
 	consumer.RegisterHandler("PostUpdated", service.PostUpdatedHandler(cacheService, fileService, postRepo))
+	consumer.RegisterHandler("PostDeleted", service.PostDeletedHandler(cacheService, fileService, postRepo))
 	return consumer, nil
 }

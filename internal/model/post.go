@@ -1,14 +1,17 @@
 package model
 
+import "github.com/google/uuid"
+
 type File struct {
 	Type string   `bson:"type" json:"type"` // "image" or "video"
 	URLs []string `bson:"urls" json:"urls,omitempty"`
 }
 
 type Post struct {
-	ID      string `bson:"_id" json:"id"`
+	ID     uuid.UUID `bson:"_id" json:"id"`
+	UserID uuid.UUID `bson:"user_id" json:"user_id"`
+
 	Content string `bson:"content" json:"content"`
-	UserID  string `bson:"user_id" json:"user_id"`
 
 	Media []File `bson:"media" json:"media,omitempty"`
 	Files []File `bson:"files" json:"files,omitempty"`

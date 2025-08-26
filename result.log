@@ -6,25 +6,24 @@
 ?   	postService/internal/delivery	[no test files]
 ?   	postService/internal/events	[no test files]
 ?   	postService/internal/mappers	[no test files]
-?   	postService/internal/messaging	[no test files]
 ?   	postService/internal/model	[no test files]
 ?   	postService/internal/repository	[no test files]
 ?   	postService/internal/routes	[no test files]
 === RUN   TestPostService_CreatePost_Success
-[32mINFO[0m PostCreated event published successfully 2025-08-17 15:58:22
+[32mINFO[0m PostCreated event published successfully 2025-08-21 17:42:28
 --- PASS: TestPostService_CreatePost_Success (0.00s)
 === RUN   TestPostService_GetPosts_CacheMiss_FetchFromRepo
-[32mINFO[0m Fetched posts from DB and cached 2025-08-17 15:58:22
+[32mINFO[0m Fetched posts from DB and cached 2025-08-21 17:42:28
 --- PASS: TestPostService_GetPosts_CacheMiss_FetchFromRepo (0.00s)
 === RUN   TestPostService_GetPostByID_CacheMiss
-[32mINFO[0m Fetched post 123 from DB and cached 2025-08-17 15:58:22
+[32mINFO[0m Fetched post 123 from DB and cached 2025-08-21 17:42:28
 --- PASS: TestPostService_GetPostByID_CacheMiss (0.00s)
 === RUN   TestPostService_DeletePost_PermissionDenied
 --- PASS: TestPostService_DeletePost_PermissionDenied (0.00s)
 === RUN   TestPostService_DeletePost_Success
-[32mINFO[0m PostDeleted event published successfully 2025-08-17 15:58:22
+[32mINFO[0m PostDeleted event published successfully 2025-08-21 17:42:28
 --- PASS: TestPostService_DeletePost_Success (0.00s)
 PASS
-ok  	postService/internal/service	0.990s
+ok  	postService/internal/service	1.369s
 ?   	postService/internal/transfer/request	[no test files]
 ?   	postService/internal/transfer/response	[no test files]

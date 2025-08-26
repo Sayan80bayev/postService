@@ -1,14 +1,16 @@
 package response
 
+import "github.com/google/uuid"
+
 type FilesResponse struct {
 	Type string   `json:"type"` // "image", "video", "file"
 	URLs []string `json:"urls,omitempty"`
 }
 
 type PostResponse struct {
-	ID           string          `json:"id"`
+	ID           uuid.UUID       `json:"id"`
+	UserID       uuid.UUID       `json:"user_id"`
 	Content      string          `json:"content"`
-	UserID       string          `json:"user_id"`
 	Media        []FilesResponse `json:"media,omitempty"`
 	Files        []FilesResponse `json:"files,omitempty"`
 	LikeCount    int64           `json:"like_count"`

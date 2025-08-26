@@ -13,13 +13,13 @@ var logger = logging.GetLogger()
 
 func main() {
 
-	bs, err := bootstrap.Init()
+	c, err := bootstrap.Init()
 	if err != nil {
 		logger.Errorf("bootstrap init err: %v", err)
 	}
 
-	go bs.Consumer.Start()
-	defer bs.Consumer.Close()
+	go c.Consumer.Start()
+	defer c.Consumer.Close()
 
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = logger.Out
@@ -28,10 +28,10 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(logging.Middleware)
 
-	routes.SetupRoutes(r, bs)
+	routes.SetupRoutes(r, c)
 
-	logger.Infof("🚀 Server is running on port %s", bs.Config.Port)
-	err = r.Run(":" + bs.Config.Port)
+	logger.Infof("🚀 Server is running on port %s", c.Config.Port)
+	err = r.Run(":" + c.Config.Port)
 	if err != nil {
 		logger.Errorf("Error starting server: %v", err)
 	}
