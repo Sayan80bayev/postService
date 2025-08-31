@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"postService/internal/bootstrap"
 
@@ -12,13 +13,13 @@ import (
 var logger = logging.GetLogger()
 
 func main() {
-
+	ctx := context.Background()
 	c, err := bootstrap.Init()
 	if err != nil {
 		logger.Errorf("bootstrap init err: %v", err)
 	}
 
-	go c.Consumer.Start()
+	go c.Consumer.Start(ctx)
 	defer c.Consumer.Close()
 
 	gin.SetMode(gin.ReleaseMode)

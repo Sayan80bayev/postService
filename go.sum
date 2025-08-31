@@ -15,6 +15,8 @@ github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERo
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250830151331-dbbc73f7be45 h1:8tPmrc0Z05Jox0aaRP51KwS+BjE0UxZwYF4kRdKO9Ns=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250830151331-dbbc73f7be45/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
+github.com/Sayan80bayev/go-project/pkg v0.0.0-20250831153012-f4ca03fa625a h1:1jwPYdp43eDdpSNNUb3IMiZG7zJVW94A1H7L5rca9Rw=
+github.com/Sayan80bayev/go-project/pkg v0.0.0-20250831153012-f4ca03fa625a/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
 github.com/actgardner/gogen-avro/v10 v10.1.0/go.mod h1:o+ybmVjEa27AAr35FRqU98DJu1fXES56uXniYFv4yDA=
 github.com/actgardner/gogen-avro/v10 v10.2.1/go.mod h1:QUhjeHPchheYmMDni/Nx7VB0RsT/ee8YIgGY/xpEQgQ=
 github.com/actgardner/gogen-avro/v9 v9.1.0/go.mod h1:nyTj6wPqDJoxM3qdnjcLv+EnMDSDFqE0qDpva2QRmKc=
