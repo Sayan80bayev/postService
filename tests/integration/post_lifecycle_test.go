@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"github.com/google/uuid"
 	"io"
 	"mime/multipart"
@@ -21,15 +20,7 @@ import (
 func TestPostLifecycle(t *testing.T) {
 	userID := uuid.New()
 	token := testutil.GenerateMockToken(userID.String())
-	logger := logging.GetLogger()
-	// --- Step 2: Run consumer in goroutine ---
-	go container.Consumer.Start()
 
-	// Always close the consumer after the test ends
-	t.Cleanup(func() {
-		logger.Info("Shutting down consumer...")
-		container.Consumer.Close()
-	})
 	// -------- CREATE POST --------
 	var createdID string
 	{

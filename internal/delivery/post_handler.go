@@ -20,6 +20,8 @@ func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostH
 
 // CreatePost handles POST /posts
 func (h *PostHandler) CreatePost(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	var req request.PostRequest
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
@@ -36,14 +38,10 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err == nil {
 		req.Media = form.File["media"]
-	}
-
-	form, err = c.MultipartForm()
-	if err == nil {
 		req.Files = form.File["files"]
 	}
 
-	if err := h.postService.CreatePost(req); err != nil {
+	if err := h.postService.CreatePost(ctx, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create post: " + err.Error()})
 		return
 	}
@@ -53,7 +51,9 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 // GetPosts handles GET /posts
 func (h *PostHandler) GetPosts(c *gin.Context) {
-	posts, err := h.postService.GetPosts()
+	ctx := c.Request.Context()
+
+	posts, err := h.postService.GetPosts(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch posts"})
 		return
@@ -64,12 +64,16 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 
 // GetPostByID handles GET /posts/:id
 func (h *PostHandler) GetPostByID(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	id := c.Param("id")
 	idUUID, err := uuid.Parse(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not parse post id: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
+		return
 	}
-	post, err := h.postService.GetPostByID(idUUID)
+
+	post, err := h.postService.GetPostByID(ctx, idUUID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Post not found"})
 		return
@@ -80,10 +84,13 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 
 // UpdatePost handles PUT /posts/:id
 func (h *PostHandler) UpdatePost(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	postID := c.Param("id")
 	postIDUUID, err := uuid.Parse(postID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not parse post id: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
+		return
 	}
 
 	var req request.PostRequest
@@ -102,14 +109,10 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 	form, err := c.MultipartForm()
 	if err == nil {
 		req.Media = form.File["media"]
-	}
-
-	form, err = c.MultipartForm()
-	if err == nil {
 		req.Files = form.File["files"]
 	}
 
-	if err := h.postService.UpdatePost(postIDUUID, req); err != nil {
+	if err := h.postService.UpdatePost(ctx, postIDUUID, req); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update post: " + err.Error()})
 		return
 	}
@@ -119,10 +122,13 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 
 // DeletePost handles DELETE /posts/:id
 func (h *PostHandler) DeletePost(c *gin.Context) {
+	ctx := c.Request.Context()
+
 	postID := c.Param("id")
 	postIDUUID, err := uuid.Parse(postID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Could not parse post id: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid post ID"})
+		return
 	}
 
 	userID, exists := c.Get("user_id")
@@ -131,7 +137,7 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 		return
 	}
 
-	if err = h.postService.DeletePost(postIDUUID, userID.(uuid.UUID)); err != nil {
+	if err = h.postService.DeletePost(ctx, postIDUUID, userID.(uuid.UUID)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not delete post: " + err.Error()})
 		return
 	}

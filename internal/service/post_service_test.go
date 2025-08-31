@@ -19,8 +19,9 @@ import (
 // Mocks
 
 type MockPostRepo struct{ mock.Mock }
-
 type MockCache struct{ mock.Mock }
+type MockStorage struct{ mock.Mock }
+type MockProducer struct{ mock.Mock }
 
 func (m *MockCache) Delete(ctx context.Context, key string) error {
 	args := m.Called(ctx, key)
@@ -42,35 +43,26 @@ func (m *MockCache) Subscribe(ctx context.Context, channel string) *redis.PubSub
 	return args.Get(0).(*redis.PubSub)
 }
 
-type MockStorage struct{ mock.Mock }
-
-func (m *MockStorage) DeleteFileByURL(fileURL string) error {
-	args := m.Called(fileURL)
-	return args.Error(0)
+func (m *MockPostRepo) CreatePost(ctx context.Context, post *model.Post) error {
+	return m.Called(ctx, post).Error(0)
 }
 
-type MockProducer struct{ mock.Mock }
-
-func (m *MockPostRepo) CreatePost(post *model.Post) error {
-	return m.Called(post).Error(0)
-}
-
-func (m *MockPostRepo) GetPosts() ([]model.Post, error) {
-	args := m.Called()
+func (m *MockPostRepo) GetPosts(ctx context.Context) ([]model.Post, error) {
+	args := m.Called(ctx)
 	return args.Get(0).([]model.Post), args.Error(1)
 }
 
-func (m *MockPostRepo) GetPostByID(id uuid.UUID) (*model.Post, error) {
-	args := m.Called(id)
+func (m *MockPostRepo) GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post, error) {
+	args := m.Called(ctx, id)
 	return args.Get(0).(*model.Post), args.Error(1)
 }
 
-func (m *MockPostRepo) UpdatePost(post *model.Post) error {
-	return m.Called(post).Error(0)
+func (m *MockPostRepo) UpdatePost(ctx context.Context, post *model.Post) error {
+	return m.Called(ctx, post).Error(0)
 }
 
-func (m *MockPostRepo) DeletePost(id uuid.UUID) error {
-	return m.Called(id).Error(0)
+func (m *MockPostRepo) DeletePost(ctx context.Context, id uuid.UUID) error {
+	return m.Called(ctx, id).Error(0)
 }
 
 func (m *MockCache) Get(ctx context.Context, key string) (string, error) {
@@ -82,12 +74,18 @@ func (m *MockCache) Set(ctx context.Context, key string, value interface{}, dura
 	return m.Called(ctx, key, value, duration).Error(0)
 }
 
-func (m *MockStorage) UploadFile(file multipart.File, header *multipart.FileHeader) (string, error) {
-	return m.Called(file, header).String(0), m.Called(file, header).Error(1)
+func (m *MockStorage) UploadFile(ctx context.Context, file multipart.File, header *multipart.FileHeader) (string, error) {
+	args := m.Called(ctx, file, header)
+	return args.String(0), args.Error(1)
 }
 
-func (m *MockProducer) Produce(eventType string, event interface{}) error {
-	return m.Called(eventType, event).Error(0)
+func (m *MockStorage) DeleteFileByURL(ctx context.Context, fileURL string) error {
+	args := m.Called(ctx, fileURL)
+	return args.Error(0)
+}
+
+func (m *MockProducer) Produce(ctx context.Context, eventType string, event interface{}) error {
+	return m.Called(ctx, eventType, event).Error(0)
 }
 
 func (m *MockProducer) Close() {}
@@ -100,6 +98,8 @@ var (
 // Tests
 
 func TestPostService_CreatePost_Success(t *testing.T) {
+	ctx := context.Background()
+
 	repo := new(MockPostRepo)
 	cache := new(MockCache)
 	storage := new(MockStorage)
@@ -113,16 +113,18 @@ func TestPostService_CreatePost_Success(t *testing.T) {
 		Media:   []*multipart.FileHeader{},
 	}
 
-	repo.On("CreatePost", mock.Anything).Return(nil)
-	producer.On("Produce", "PostCreated", mock.AnythingOfType("events.PostCreated")).Return(nil)
+	repo.On("CreatePost", ctx, mock.Anything).Return(nil)
+	producer.On("Produce", ctx, "PostCreated", mock.AnythingOfType("events.PostCreated")).Return(nil)
 
-	err := service.CreatePost(req)
+	err := service.CreatePost(ctx, req)
 	assert.NoError(t, err)
 	repo.AssertExpectations(t)
 	producer.AssertExpectations(t)
 }
 
 func TestPostService_GetPosts_CacheMiss_FetchFromRepo(t *testing.T) {
+	ctx := context.Background()
+
 	repo := new(MockPostRepo)
 	cache := new(MockCache)
 	storage := new(MockStorage)
@@ -130,47 +132,55 @@ func TestPostService_GetPosts_CacheMiss_FetchFromRepo(t *testing.T) {
 
 	service := NewPostService(repo, storage, cache, producer)
 
-	cache.On("Get", mock.Anything, "posts:list").Return("", errors.New("cache miss"))
-	repo.On("GetPosts").Return([]model.Post{{ID: postID, Content: "Test", UserID: userID}}, nil)
-	cache.On("Set", mock.Anything, "posts:list", mock.Anything, mock.Anything).Return(nil)
+	cache.On("Get", ctx, "posts:list").Return("", errors.New("cache miss"))
+	repo.On("GetPosts", ctx).Return([]model.Post{{ID: postID, Content: "Test", UserID: userID}}, nil)
+	cache.On("Set", ctx, "posts:list", mock.Anything, mock.Anything).Return(nil)
 
-	posts, err := service.GetPosts()
+	posts, err := service.GetPosts(ctx)
 	assert.NoError(t, err)
 	assert.Len(t, posts, 1)
 }
 
 func TestPostService_GetPostByID_CacheMiss(t *testing.T) {
+	ctx := context.Background()
+
 	repo := new(MockPostRepo)
 	cache := new(MockCache)
 	storage := new(MockStorage)
 	producer := new(MockProducer)
 	cacheKey := "post:" + postID.String()
+
 	service := NewPostService(repo, storage, cache, producer)
 
-	cache.On("Get", mock.Anything, cacheKey).Return("", errors.New("cache miss"))
-	repo.On("GetPostByID", postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
-	cache.On("Set", mock.Anything, cacheKey, mock.Anything, mock.Anything).Return(nil)
+	cache.On("Get", ctx, cacheKey).Return("", errors.New("cache miss"))
+	repo.On("GetPostByID", ctx, postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
+	cache.On("Set", ctx, cacheKey, mock.Anything, mock.Anything).Return(nil)
 
-	post, err := service.GetPostByID(postID)
+	post, err := service.GetPostByID(ctx, postID)
 	assert.NoError(t, err)
 	assert.Equal(t, postID, post.ID)
 }
 
 func TestPostService_DeletePost_PermissionDenied(t *testing.T) {
+	ctx := context.Background()
+
 	repo := new(MockPostRepo)
 	cache := new(MockCache)
 	storage := new(MockStorage)
 	producer := new(MockProducer)
 	userID2 := uuid.New()
+
 	service := NewPostService(repo, storage, cache, producer)
 
-	repo.On("GetPostByID", postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
+	repo.On("GetPostByID", ctx, postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
 
-	err := service.DeletePost(postID, userID2)
+	err := service.DeletePost(ctx, postID, userID2)
 	assert.EqualError(t, err, "user not allowed")
 }
 
 func TestPostService_DeletePost_Success(t *testing.T) {
+	ctx := context.Background()
+
 	repo := new(MockPostRepo)
 	cache := new(MockCache)
 	storage := new(MockStorage)
@@ -195,16 +205,16 @@ func TestPostService_DeletePost_Success(t *testing.T) {
 		},
 	}
 
-	repo.On("GetPostByID", postID).Return(post, nil)
-	repo.On("DeletePost", postID).Return(nil)
-
-	producer.On("Produce", "PostDeleted", events.PostDeleted{
+	repo.On("GetPostByID", ctx, postID).Return(post, nil)
+	repo.On("DeletePost", ctx, postID).Return(nil)
+	cache.On("Delete", ctx, mock.Anything).Return(nil)
+	producer.On("Produce", ctx, "PostDeleted", events.PostDeleted{
 		PostID:    postID,
 		MediaURLs: []string{"img1.jpg", "img2.jpg"},
 		FilesURLs: []string{"doc1.pdf"},
 	}).Return(nil)
 
-	err := service.DeletePost(postID, userID)
+	err := service.DeletePost(ctx, postID, userID)
 	assert.NoError(t, err)
 
 	repo.AssertExpectations(t)

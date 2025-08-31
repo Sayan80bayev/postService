@@ -22,11 +22,11 @@ import (
 )
 
 type PostRepository interface {
-	CreatePost(post *model.Post) error
-	GetPosts() ([]model.Post, error)
-	GetPostByID(id uuid.UUID) (*model.Post, error)
-	UpdatePost(post *model.Post) error
-	DeletePost(id uuid.UUID) error
+	CreatePost(ctx context.Context, post *model.Post) error
+	GetPosts(ctx context.Context) ([]model.Post, error)
+	GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post, error)
+	UpdatePost(ctx context.Context, post *model.Post) error
+	DeletePost(ctx context.Context, id uuid.UUID) error
 }
 
 type PostService struct {
@@ -49,62 +49,54 @@ func NewPostService(repo PostRepository, fileStorage storage.FileStorage, cacheS
 	}
 }
 
-func (ps *PostService) GetPosts() ([]response.PostResponse, error) {
+func (ps *PostService) GetPosts(ctx context.Context) ([]response.PostResponse, error) {
 	var postResponses []response.PostResponse
-	if err := ps.getFromCache("posts:list", &postResponses); err == nil {
+	if err := ps.getFromCache(ctx, "posts:list", &postResponses); err == nil {
 		logger.Info("Fetched posts from cache")
 		return postResponses, nil
 	}
 
-	posts, err := ps.repo.GetPosts()
+	posts, err := ps.repo.GetPosts(ctx)
 	if err != nil {
 		logger.Errorf("Error fetching posts: %v", err)
 		return nil, err
 	}
 
 	postResponses = ps.mapper.MapEach(posts)
-	_ = ps.setToCache("posts:list", postResponses, 10*time.Minute)
+	_ = ps.setToCache(ctx, "posts:list", postResponses, 10*time.Minute)
 	logger.Info("Fetched posts from DB and cached")
 
 	return postResponses, nil
 }
 
-func (ps *PostService) GetPostByID(id uuid.UUID) (*response.PostResponse, error) {
+func (ps *PostService) GetPostByID(ctx context.Context, id uuid.UUID) (*response.PostResponse, error) {
 	cacheKey := fmt.Sprintf("post:%s", id)
 	var post response.PostResponse
-	if err := ps.getFromCache(cacheKey, &post); err == nil {
+	if err := ps.getFromCache(ctx, cacheKey, &post); err == nil {
 		logger.Infof("Fetched post %s from cache", id)
 		return &post, nil
 	}
 
-	modelPost, err := ps.repo.GetPostByID(id)
+	modelPost, err := ps.repo.GetPostByID(ctx, id)
 	if err != nil {
 		logger.Errorf("Error fetching post %s: %v", id, err)
 		return nil, err
 	}
 
 	post = ps.mapper.Map(*modelPost)
-	_ = ps.setToCache(cacheKey, post, 10*time.Minute)
+	_ = ps.setToCache(ctx, cacheKey, post, 10*time.Minute)
 	logger.Infof("Fetched post %s from DB and cached", id)
 
 	return &post, nil
 }
 
-func extractURLs(media []model.File) []string {
-	var urls []string
-	for _, m := range media {
-		urls = append(urls, m.URLs...)
-	}
-	return urls
-}
-
-func (ps *PostService) CreatePost(p request.PostRequest) error {
-	files, err := ps.uploadAndCategorizeData(p.Files)
+func (ps *PostService) CreatePost(ctx context.Context, p request.PostRequest) error {
+	files, err := ps.uploadAndCategorizeData(ctx, p.Files)
 	if err != nil {
 		return err
 	}
 
-	media, err := ps.uploadAndCategorizeData(p.Media)
+	media, err := ps.uploadAndCategorizeData(ctx, p.Media)
 	if err != nil {
 		return err
 	}
@@ -116,18 +108,18 @@ func (ps *PostService) CreatePost(p request.PostRequest) error {
 		Files:   files,
 	}
 
-	if err := ps.repo.CreatePost(post); err != nil {
+	if err := ps.repo.CreatePost(ctx, post); err != nil {
 		logger.Errorf("Error creating post: %v", err)
 		return err
 	}
 
-	return ps.publishEvent("PostCreated", events.PostCreated{
+	return ps.publishEvent(ctx, "PostCreated", events.PostCreated{
 		PostID: post.ID,
 	})
 }
 
-func (ps *PostService) UpdatePost(postId uuid.UUID, p request.PostRequest) error {
-	post, err := ps.validatePermission(p.UserID, postId)
+func (ps *PostService) UpdatePost(ctx context.Context, postId uuid.UUID, p request.PostRequest) error {
+	post, err := ps.validatePermission(ctx, p.UserID, postId)
 	if err != nil {
 		return err
 	}
@@ -136,7 +128,7 @@ func (ps *PostService) UpdatePost(postId uuid.UUID, p request.PostRequest) error
 	filesOldUrls := extractURLs(post.Files)
 
 	if len(p.Media) > 0 {
-		post.Media, err = ps.uploadAndCategorizeData(p.Media)
+		post.Media, err = ps.uploadAndCategorizeData(ctx, p.Media)
 		if err != nil {
 			return err
 		}
@@ -145,7 +137,7 @@ func (ps *PostService) UpdatePost(postId uuid.UUID, p request.PostRequest) error
 	}
 
 	if len(p.Files) > 0 {
-		post.Files, err = ps.uploadAndCategorizeData(p.Files)
+		post.Files, err = ps.uploadAndCategorizeData(ctx, p.Files)
 		if err != nil {
 			return err
 		}
@@ -155,12 +147,16 @@ func (ps *PostService) UpdatePost(postId uuid.UUID, p request.PostRequest) error
 
 	post.Content = p.Content
 
-	if err := ps.repo.UpdatePost(post); err != nil {
+	if err := ps.repo.UpdatePost(ctx, post); err != nil {
 		logger.Errorf("Error updating post %s: %v", postId, err)
 		return err
 	}
 
-	return ps.publishEvent("PostUpdated", events.PostUpdated{
+	// Invalidate cache for this post and the list
+	_ = ps.cacheService.Delete(ctx, fmt.Sprintf("post:%s", postId))
+	_ = ps.cacheService.Delete(ctx, "posts:list")
+
+	return ps.publishEvent(ctx, "PostUpdated", events.PostUpdated{
 		PostID:       post.ID,
 		MediaNewURLs: extractURLs(post.Media),
 		MediaOldURLs: mediaOldUrls,
@@ -169,25 +165,28 @@ func (ps *PostService) UpdatePost(postId uuid.UUID, p request.PostRequest) error
 	})
 }
 
-func (ps *PostService) DeletePost(postId, userId uuid.UUID) error {
-	post, err := ps.validatePermission(userId, postId)
+func (ps *PostService) DeletePost(ctx context.Context, postId, userId uuid.UUID) error {
+	post, err := ps.validatePermission(ctx, userId, postId)
 	if err != nil {
 		return err
 	}
 
-	if err := ps.repo.DeletePost(postId); err != nil {
+	if err := ps.repo.DeletePost(ctx, postId); err != nil {
 		logger.Errorf("Error deleting post %s: %v", postId, err)
 		return err
 	}
 
-	return ps.publishEvent("PostDeleted", events.PostDeleted{
+	// Invalidate cache
+	_ = ps.cacheService.Delete(ctx, fmt.Sprintf("post:%s", postId))
+
+	return ps.publishEvent(ctx, "PostDeleted", events.PostDeleted{
 		PostID:    post.ID,
 		MediaURLs: extractURLs(post.Media),
 		FilesURLs: extractURLs(post.Files),
 	})
 }
 
-func (ps *PostService) uploadAndCategorizeData(files []*multipart.FileHeader) ([]model.File, error) {
+func (ps *PostService) uploadAndCategorizeData(ctx context.Context, files []*multipart.FileHeader) ([]model.File, error) {
 	mediaMap := map[string][]string{}
 
 	for _, fh := range files {
@@ -198,7 +197,7 @@ func (ps *PostService) uploadAndCategorizeData(files []*multipart.FileHeader) ([
 		}
 		defer file.Close()
 
-		url, err := ps.fileStorage.UploadFile(file, fh)
+		url, err := ps.fileStorage.UploadFile(ctx, file, fh) // ctx-aware upload
 		if err != nil {
 			logger.Errorf("Error uploading file: %v", err)
 			continue
@@ -230,8 +229,8 @@ func detectDataType(filename string) string {
 	}
 }
 
-func (ps *PostService) validatePermission(userId, postId uuid.UUID) (*model.Post, error) {
-	post, err := ps.repo.GetPostByID(postId)
+func (ps *PostService) validatePermission(ctx context.Context, userId, postId uuid.UUID) (*model.Post, error) {
+	post, err := ps.repo.GetPostByID(ctx, postId)
 	if err != nil {
 		return nil, errors.New("post not found")
 	}
@@ -241,28 +240,37 @@ func (ps *PostService) validatePermission(userId, postId uuid.UUID) (*model.Post
 	return post, nil
 }
 
-func (ps *PostService) getFromCache(key string, dest interface{}) error {
-	data, err := ps.cacheService.Get(context.TODO(), key)
+func (ps *PostService) getFromCache(ctx context.Context, key string, dest interface{}) error {
+	data, err := ps.cacheService.Get(ctx, key)
 	if err != nil {
 		return err
 	}
 	return json.Unmarshal([]byte(data), dest)
 }
 
-func (ps *PostService) setToCache(key string, value interface{}, duration time.Duration) error {
+func (ps *PostService) setToCache(ctx context.Context, key string, value interface{}, duration time.Duration) error {
 	data, err := json.Marshal(value)
 	if err != nil {
 		return err
 	}
 
-	return ps.cacheService.Set(context.TODO(), key, data, duration)
+	return ps.cacheService.Set(ctx, key, data, duration)
 }
 
-func (ps *PostService) publishEvent(eventType string, event interface{}) error {
-	if err := ps.producer.Produce(eventType, event); err != nil {
+func (ps *PostService) publishEvent(ctx context.Context, eventType string, event interface{}) error {
+	if err := ps.producer.Produce(ctx, eventType, event); err != nil {
 		logger.Errorf("Error sending %s event: %v", eventType, err)
 		return err
 	}
 	logger.Infof("%s event published successfully", eventType)
 	return nil
+}
+
+// helper
+func extractURLs(media []model.File) []string {
+	var urls []string
+	for _, m := range media {
+		urls = append(urls, m.URLs...)
+	}
+	return urls
 }

@@ -13,14 +13,14 @@ import (
 var logger = logging.GetLogger()
 
 type PostCacheRepository interface {
-	GetPosts() ([]model.Post, error)
+	GetPosts(ctx context.Context) ([]model.Post, error)
 }
 
 func UpdateCache(cacheService caching.CacheService, repo PostCacheRepository) {
 	ctx := context.Background()
 	mapper := mappers.PostMapper{MapFunc: mappers.MapPostToResponse}
 
-	posts, err := repo.GetPosts()
+	posts, err := repo.GetPosts(ctx)
 	if err != nil {
 		logger.Warn("Error loading posts:", err)
 		return

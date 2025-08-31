@@ -30,12 +30,12 @@ func PostUpdatedHandler(
 
 		// delete old media/files
 		for _, oldURL := range e.MediaOldURLs {
-			if err := fileStorage.DeleteFileByURL(oldURL); err != nil {
+			if err := fileStorage.DeleteFileByURL(ctx, oldURL); err != nil {
 				logger.Warnf("Failed to delete old file: %s, error: %v", oldURL, err)
 			}
 		}
 		for _, oldURL := range e.FilesOldURLs {
-			if err := fileStorage.DeleteFileByURL(oldURL); err != nil {
+			if err := fileStorage.DeleteFileByURL(ctx, oldURL); err != nil {
 				logger.Warnf("Failed to delete old file: %s, error: %v", oldURL, err)
 			}
 		}
@@ -46,7 +46,7 @@ func PostUpdatedHandler(
 		}
 
 		// fetch updated post
-		post, err := postRepo.GetPostByID(e.PostID)
+		post, err := postRepo.GetPostByID(ctx, e.PostID)
 		if err != nil {
 			logger.Errorf("Error fetching post by ID: %v", err)
 			return nil // don’t retry on fetch errors
@@ -86,12 +86,12 @@ func PostDeletedHandler(
 
 		// delete media/files
 		for _, url := range e.MediaURLs {
-			if err := fileStorage.DeleteFileByURL(url); err != nil {
+			if err := fileStorage.DeleteFileByURL(ctx, url); err != nil {
 				logger.Warnf("Error deleting file from MinIO (%s): %v", url, err)
 			}
 		}
 		for _, url := range e.FilesURLs {
-			if err := fileStorage.DeleteFileByURL(url); err != nil {
+			if err := fileStorage.DeleteFileByURL(ctx, url); err != nil {
 				logger.Warnf("Error deleting file from MinIO (%s): %v", url, err)
 			}
 		}
