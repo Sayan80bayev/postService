@@ -1,3 +1,4 @@
+# ---------- Builder ----------
 FROM golang:1.24-bullseye AS builder
 
 # Install build dependencies
@@ -12,27 +13,44 @@ RUN git clone https://github.com/confluentinc/librdkafka.git && \
     make && \
     make install
 
+# Set working directory for Go build
 WORKDIR /app
 
-COPY go.mod go.sum ./
-RUN go mod tidy
+# Copy Go dependency files from service folder
+COPY services/postService/go.mod services/postService/go.sum ./
+RUN go mod download
+RUN go mod verify
 
-COPY . .
+# Copy service source code
+COPY services/postService/. .
+
+# Build the Go app
 RUN CGO_ENABLED=1 go build -tags dynamic -ldflags="-w -s" -o app ./cmd/server
 
-# Final slim image
+# ---------- Final Image ----------
 FROM debian:bullseye-slim
 
-RUN apt-get update && apt-get install -y ca-certificates &&  apt-get install -y nano &&\
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates nano && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /root/
 
+# Copy SSL certs from nginx folder
+COPY nginx/certs/ca.crt /usr/local/share/ca-certificates/ca.crt
+COPY nginx/certs/ca.key /etc/ssl/private/ca.key
+
+# Set permissions and update CA store
+RUN chmod 600 /etc/ssl/private/ca.key && update-ca-certificates
+
+# Copy built artifacts and libraries from builder
 COPY --from=builder /usr/local/lib/librdkafka* /usr/local/lib/
 COPY --from=builder /app/app .
 COPY --from=builder /app/config ./config
 COPY --from=builder /app/internal/bootstrap ./internal
 
+# Configure environment
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
 EXPOSE 8080
