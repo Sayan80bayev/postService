@@ -114,7 +114,7 @@ func TestPostService_CreatePost_Success(t *testing.T) {
 	}
 
 	repo.On("CreatePost", ctx, mock.Anything).Return(nil)
-	producer.On("Produce", ctx, "PostCreated", mock.AnythingOfType("events.PostCreated")).Return(nil)
+	producer.On("Produce", ctx, "PostCreatedEvent", mock.AnythingOfType("events.PostCreatedEvent")).Return(nil)
 
 	err := service.CreatePost(ctx, req)
 	assert.NoError(t, err)
@@ -208,7 +208,7 @@ func TestPostService_DeletePost_Success(t *testing.T) {
 	repo.On("GetPostByID", ctx, postID).Return(post, nil)
 	repo.On("DeletePost", ctx, postID).Return(nil)
 	cache.On("Delete", ctx, mock.Anything).Return(nil)
-	producer.On("Produce", ctx, "PostDeleted", events.PostDeleted{
+	producer.On("Produce", ctx, "PostDeletedEvent", events.PostDeletedEvent{
 		PostID:    postID,
 		MediaURLs: []string{"img1.jpg", "img2.jpg"},
 		FilesURLs: []string{"doc1.pdf"},

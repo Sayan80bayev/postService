@@ -8,6 +8,7 @@ import (
 	"github.com/Sayan80bayev/go-project/pkg/messaging"
 	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
 	"postService/internal/config"
+	"postService/internal/events"
 	"postService/internal/repository"
 	"postService/internal/service"
 	"time"
@@ -72,6 +73,7 @@ func Init() (*Container, error) {
 	logger.Info("✅ Dependencies initialized successfully")
 
 	return &Container{
+		FileStorage:    fileStorage,
 		DB:             db,
 		Redis:          cacheService,
 		Producer:       producer,
@@ -159,7 +161,7 @@ func initKafkaConsumer(cacheService caching.CacheService, fileService storage.Fi
 		return nil, err
 	}
 
-	consumer.RegisterHandler("PostUpdated", service.PostUpdatedHandler(cacheService, fileService, postRepo))
-	consumer.RegisterHandler("PostDeleted", service.PostDeletedHandler(cacheService, fileService, postRepo))
+	consumer.RegisterHandler(events.PostUpdated, service.PostUpdatedHandler(cacheService, fileService, postRepo))
+	consumer.RegisterHandler(events.PostDeleted, service.PostDeletedHandler(cacheService, fileService, postRepo))
 	return consumer, nil
 }

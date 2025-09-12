@@ -5,7 +5,7 @@ go 1.24.1
 toolchain go1.24.6
 
 require (
-	github.com/Sayan80bayev/go-project/pkg v0.0.0-20250831153012-f4ca03fa625a
+	github.com/Sayan80bayev/go-project/pkg v0.0.0-20250911180008-2cd4c1897cb1
 	github.com/docker/docker v28.2.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/gin-gonic/gin v1.10.0

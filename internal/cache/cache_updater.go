@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+const (
+	CacheKeyPostsList = "posts:list"
+	CacheKeyPostFmt   = "post:%s"
+	CacheTTL          = 10 * time.Minute
+)
+
 var logger = logging.GetLogger()
 
 type PostCacheRepository interface {
@@ -33,7 +39,7 @@ func UpdateCache(cacheService caching.CacheService, repo PostCacheRepository) {
 		return
 	}
 
-	if err := cacheService.Set(ctx, "posts:list", jsonData, 5*time.Minute); err != nil {
+	if err := cacheService.Set(ctx, CacheKeyPostsList, jsonData, CacheTTL); err != nil {
 		logger.Errorf("Failed to set posts:list in cache: %v", err)
 		return
 	}
