@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"mime/multipart"
+	"net/http"
 	"postService/internal/events"
 	"postService/internal/model"
 	"postService/internal/transfer/request"
@@ -81,6 +82,10 @@ func (m *MockStorage) UploadFile(ctx context.Context, file multipart.File, heade
 
 func (m *MockStorage) DeleteFileByURL(ctx context.Context, fileURL string) error {
 	args := m.Called(ctx, fileURL)
+	return args.Error(0)
+}
+func (m *MockStorage) DownloadFile(w http.ResponseWriter, r *http.Request, fileURL string) error {
+	args := m.Called(w, r, fileURL)
 	return args.Error(0)
 }
 

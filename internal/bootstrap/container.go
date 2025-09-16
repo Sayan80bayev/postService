@@ -132,11 +132,12 @@ func initMinio(cfg *config.Config) (storage.FileStorage, error) {
 	logger := logging.GetLogger()
 
 	minioCfg := &storage.MinioConfig{
-		Bucket:    cfg.MinioBucket,
-		Host:      cfg.MinioHost,
-		AccessKey: cfg.AccessKey,
-		SecretKey: cfg.SecretKey,
-		Port:      cfg.MinioPort,
+		PublicHost: "localhost",
+		Bucket:     cfg.MinioBucket,
+		Host:       cfg.MinioHost,
+		AccessKey:  cfg.AccessKey,
+		SecretKey:  cfg.SecretKey,
+		Port:       cfg.MinioPort,
 	}
 
 	fs, err := storage.NewMinioStorage(minioCfg)
