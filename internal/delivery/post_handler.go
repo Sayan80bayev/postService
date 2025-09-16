@@ -1,12 +1,19 @@
 package delivery
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
 	"postService/internal/config"
 	"postService/internal/service"
 	"postService/internal/transfer/request"
+)
+
+const (
+	MaxUploadSize    = 20 << 20 // 20 MB для всего запроса
+	MaxMediaFileSize = 5 << 20  // 5 MB для медиа
+	MaxOtherFileSize = 10 << 20 // 10 MB для других файлов
 )
 
 type PostHandler struct {
@@ -20,9 +27,12 @@ func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostH
 
 // CreatePost handles POST /posts
 func (h *PostHandler) CreatePost(c *gin.Context) {
-	ctx := c.Request.Context()
+	// Ограничиваем общий размер тела запроса
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxUploadSize)
 
+	ctx := c.Request.Context()
 	var req request.PostRequest
+
 	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
 		return
@@ -37,6 +47,22 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 	form, err := c.MultipartForm()
 	if err == nil {
+		// Проверяем размер медиафайлов
+		for _, f := range form.File["media"] {
+			if f.Size > MaxMediaFileSize {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("media file %s is too large (max %d MB)", f.Filename, MaxMediaFileSize>>20)})
+				return
+			}
+		}
+
+		// Проверяем размер других файлов
+		for _, f := range form.File["files"] {
+			if f.Size > MaxOtherFileSize {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("file %s is too large (max %d MB)", f.Filename, MaxOtherFileSize>>20)})
+				return
+			}
+		}
+
 		req.Media = form.File["media"]
 		req.Files = form.File["files"]
 	}
@@ -84,8 +110,10 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 
 // UpdatePost handles PUT /posts/:id
 func (h *PostHandler) UpdatePost(c *gin.Context) {
-	ctx := c.Request.Context()
+	// Ограничиваем общий размер тела запроса
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxUploadSize)
 
+	ctx := c.Request.Context()
 	postID := c.Param("id")
 	postIDUUID, err := uuid.Parse(postID)
 	if err != nil {
@@ -108,6 +136,20 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 
 	form, err := c.MultipartForm()
 	if err == nil {
+		for _, f := range form.File["media"] {
+			if f.Size > MaxMediaFileSize {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("media file %s is too large (max %d MB)", f.Filename, MaxMediaFileSize>>20)})
+				return
+			}
+		}
+
+		for _, f := range form.File["files"] {
+			if f.Size > MaxOtherFileSize {
+				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("file %s is too large (max %d MB)", f.Filename, MaxOtherFileSize>>20)})
+				return
+			}
+		}
+
 		req.Media = form.File["media"]
 		req.Files = form.File["files"]
 	}
