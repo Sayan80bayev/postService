@@ -48,8 +48,13 @@ func (m *MockPostRepo) CreatePost(ctx context.Context, post *model.Post) error {
 	return m.Called(ctx, post).Error(0)
 }
 
-func (m *MockPostRepo) GetPosts(ctx context.Context) ([]model.Post, error) {
-	args := m.Called(ctx)
+func (m *MockPostRepo) GetPosts(ctx context.Context, page, limit int64) ([]model.Post, error) {
+	args := m.Called(ctx, page, limit)
+	return args.Get(0).([]model.Post), args.Error(1)
+}
+
+func (m *MockPostRepo) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]model.Post, error) {
+	args := m.Called(ctx, userID, page, limit)
 	return args.Get(0).([]model.Post), args.Error(1)
 }
 
@@ -137,11 +142,11 @@ func TestPostService_GetPosts_CacheMiss_FetchFromRepo(t *testing.T) {
 
 	service := NewPostService(repo, storage, cache, producer)
 
-	cache.On("Get", ctx, "posts:list").Return("", errors.New("cache miss"))
-	repo.On("GetPosts", ctx).Return([]model.Post{{ID: postID, Content: "Test", UserID: userID}}, nil)
-	cache.On("Set", ctx, "posts:list", mock.Anything, mock.Anything).Return(nil)
+	cache.On("Get", ctx, "posts:list_page_1_limit_5").Return("", errors.New("cache miss"))
+	repo.On("GetPosts", ctx, int64(1), int64(5)).Return([]model.Post{{ID: postID, Content: "Test", UserID: userID}}, nil)
+	cache.On("Set", ctx, "posts:list_page_1_limit_5", mock.Anything, mock.Anything).Return(nil)
 
-	posts, err := service.GetPosts(ctx)
+	posts, err := service.GetPosts(ctx, int64(1), int64(5))
 	assert.NoError(t, err)
 	assert.Len(t, posts, 1)
 }
@@ -180,7 +185,7 @@ func TestPostService_DeletePost_PermissionDenied(t *testing.T) {
 	repo.On("GetPostByID", ctx, postID).Return(&model.Post{ID: postID, UserID: userID}, nil)
 
 	err := service.DeletePost(ctx, postID, userID2)
-	assert.EqualError(t, err, "user not allowed")
+	assert.EqualError(t, err, "permission validation failed for post "+postID.String()+": user not allowed to modify this post")
 }
 
 func TestPostService_DeletePost_Success(t *testing.T) {

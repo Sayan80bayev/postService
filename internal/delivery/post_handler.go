@@ -8,12 +8,13 @@ import (
 	"postService/internal/config"
 	"postService/internal/service"
 	"postService/internal/transfer/request"
+	"strconv"
 )
 
 const (
-	MaxUploadSize    = 20 << 20 // 20 MB для всего запроса
-	MaxMediaFileSize = 5 << 20  // 5 MB для медиа
-	MaxOtherFileSize = 10 << 20 // 10 MB для других файлов
+	MaxUploadSize    = 20 << 20 // 20 MB for whole request
+	MaxMediaFileSize = 5 << 20  // 5 MB for media
+	MaxOtherFileSize = 10 << 20 // 10 MB for other files
 )
 
 type PostHandler struct {
@@ -27,7 +28,6 @@ func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostH
 
 // CreatePost handles POST /posts
 func (h *PostHandler) CreatePost(c *gin.Context) {
-	// Ограничиваем общий размер тела запроса
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxUploadSize)
 
 	ctx := c.Request.Context()
@@ -47,7 +47,6 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 
 	form, err := c.MultipartForm()
 	if err == nil {
-		// Проверяем размер медиафайлов
 		for _, f := range form.File["media"] {
 			if f.Size > MaxMediaFileSize {
 				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("media file %s is too large (max %d MB)", f.Filename, MaxMediaFileSize>>20)})
@@ -55,7 +54,6 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 			}
 		}
 
-		// Проверяем размер других файлов
 		for _, f := range form.File["files"] {
 			if f.Size > MaxOtherFileSize {
 				c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("file %s is too large (max %d MB)", f.Filename, MaxOtherFileSize>>20)})
@@ -75,13 +73,37 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Post created successfully"})
 }
 
-// GetPosts handles GET /posts
+// GetPosts handles GET /posts?page=&limit=
 func (h *PostHandler) GetPosts(c *gin.Context) {
 	ctx := c.Request.Context()
 
-	posts, err := h.postService.GetPosts(ctx)
+	page, limit := parsePagination(c)
+
+	posts, err := h.postService.GetPosts(ctx, page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch posts"})
+		return
+	}
+
+	c.JSON(http.StatusOK, posts)
+}
+
+// GetPostsByUserID handles GET /posts/user/:id?page=&limit=
+func (h *PostHandler) GetPostsByUserID(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	userIDParam := c.Param("id")
+	userID, err := uuid.Parse(userIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	page, limit := parsePagination(c)
+
+	posts, err := h.postService.GetPostsByUserID(ctx, userID, page, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch posts for user"})
 		return
 	}
 
@@ -110,7 +132,6 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 
 // UpdatePost handles PUT /posts/:id
 func (h *PostHandler) UpdatePost(c *gin.Context) {
-	// Ограничиваем общий размер тела запроса
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxUploadSize)
 
 	ctx := c.Request.Context()
@@ -185,4 +206,18 @@ func (h *PostHandler) DeletePost(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Post deleted successfully"})
+}
+
+// helper to parse pagination params
+func parsePagination(c *gin.Context) (int64, int64) {
+	page, _ := strconv.ParseInt(c.DefaultQuery("page", "1"), 10, 64)
+	limit, _ := strconv.ParseInt(c.DefaultQuery("limit", "10"), 10, 64)
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	return page, limit
 }

@@ -10,6 +10,11 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+const (
+	createdAtKey = "createdAt"
 )
 
 type PostRepositoryImpl struct {
@@ -31,16 +36,66 @@ func (r *PostRepositoryImpl) CreatePost(ctx context.Context, post *model.Post) e
 	return err
 }
 
-func (r *PostRepositoryImpl) GetPosts(ctx context.Context) ([]model.Post, error) {
+// GetPosts returns paginated posts
+func (r *PostRepositoryImpl) GetPosts(ctx context.Context, page, limit int64) ([]model.Post, error) {
 	logger := logging.GetLogger()
-	cursor, err := r.collection.Find(ctx, bson.M{})
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	skip := (page - 1) * limit
+
+	findOptions := options.Find()
+	findOptions.SetSkip(skip)
+	findOptions.SetLimit(limit)
+	findOptions.SetSort(bson.D{{Key: createdAtKey, Value: -1}}) // newest first
+
+	cursor, err := r.collection.Find(ctx, bson.M{}, findOptions)
 	if err != nil {
 		return nil, err
 	}
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
-		err = cursor.Close(ctx)
-		if err != nil {
-			logger.Errorf("Error closing cursor: %v", err)
+		if cerr := cursor.Close(ctx); cerr != nil {
+			logger.Errorf("Error closing cursor: %v", cerr)
+		}
+	}(cursor, ctx)
+
+	var posts []model.Post
+	if err := cursor.All(ctx, &posts); err != nil {
+		return nil, err
+	}
+	return posts, nil
+}
+
+// GetPostsByUserID returns paginated posts by userId
+func (r *PostRepositoryImpl) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]model.Post, error) {
+	logger := logging.GetLogger()
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	skip := (page - 1) * limit
+
+	findOptions := options.Find()
+	findOptions.SetSkip(skip)
+	findOptions.SetLimit(limit)
+	findOptions.SetSort(bson.D{{Key: createdAtKey, Value: -1}}) // newest first
+
+	filter := bson.M{"userid": userID}
+
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		if cerr := cursor.Close(ctx); cerr != nil {
+			logger.Errorf("Error closing cursor: %v", cerr)
 		}
 	}(cursor, ctx)
 

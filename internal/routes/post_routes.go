@@ -20,6 +20,7 @@ func SetupPostRoutes(r *gin.Engine, c *bootstrap.Container) {
 
 	r.GET("api/v1/posts", postHandler.GetPosts)
 	r.GET("api/v1/posts/:id", postHandler.GetPostByID)
+	r.GET("api/v1/posts/user/:id", postHandler.GetPostsByUserID)
 
 	postRoutes := r.Group("api/v1/posts", middleware.AuthMiddleware(c.JWKSurl))
 	{

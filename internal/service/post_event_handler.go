@@ -105,9 +105,6 @@ func PostDeletedHandler(
 
 		logger.Infof("post %s deleted and cleaned up", e.PostID)
 
-		// refresh global cache
-		cache.UpdateCache(cacheService, postRepo)
-
 		return nil
 	}
 }

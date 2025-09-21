@@ -32,7 +32,8 @@ const (
 
 type PostRepository interface {
 	CreatePost(ctx context.Context, post *model.Post) error
-	GetPosts(ctx context.Context) ([]model.Post, error)
+	GetPosts(ctx context.Context, page, limit int64) ([]model.Post, error)
+	GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]model.Post, error)
 	GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post, error)
 	UpdatePost(ctx context.Context, post *model.Post) error
 	DeletePost(ctx context.Context, id uuid.UUID) error
@@ -58,24 +59,51 @@ func NewPostService(repo PostRepository, fileStorage storage.FileStorage, cacheS
 	}
 }
 
-func (ps *PostService) GetPosts(ctx context.Context) ([]response.PostResponse, error) {
+// GetPosts with pagination
+func (ps *PostService) GetPosts(ctx context.Context, page, limit int64) ([]response.PostResponse, error) {
+	cacheKey := fmt.Sprintf("%s_page_%d_limit_%d", cache.CacheKeyPostsList, page, limit)
+
 	var postResponses []response.PostResponse
-	if err := ps.getFromCache(ctx, cache.CacheKeyPostsList, &postResponses); err == nil {
-		ps.logger.Info("Fetched posts from cache")
+	if err := ps.getFromCache(ctx, cacheKey, &postResponses); err == nil {
+		ps.logger.Infof("Fetched posts (page=%d, limit=%d) from cache", page, limit)
 		return postResponses, nil
 	}
 
-	posts, err := ps.repo.GetPosts(ctx)
+	posts, err := ps.repo.GetPosts(ctx, page, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch posts from DB: %w", err)
 	}
 
 	postResponses = ps.mapper.MapEach(posts)
-	if err := ps.setToCache(ctx, cache.CacheKeyPostsList, postResponses, cache.CacheTTL); err != nil {
-		ps.logger.Warnf("failed to set posts list to cache: %v", err)
+	if err := ps.setToCache(ctx, cacheKey, postResponses, cache.CacheTTL); err != nil {
+		ps.logger.Warnf("failed to set posts (page=%d, limit=%d) to cache: %v", page, limit, err)
 	}
 
-	ps.logger.Info("Fetched posts from DB and cached")
+	ps.logger.Infof("Fetched posts (page=%d, limit=%d) from DB and cached", page, limit)
+	return postResponses, nil
+}
+
+// GetPostsByUserID with pagination
+func (ps *PostService) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]response.PostResponse, error) {
+	cacheKey := fmt.Sprintf("posts_user_%s_page_%d_limit_%d", userID, page, limit)
+
+	var postResponses []response.PostResponse
+	if err := ps.getFromCache(ctx, cacheKey, &postResponses); err == nil {
+		ps.logger.Infof("Fetched posts for user %s (page=%d, limit=%d) from cache", userID, page, limit)
+		return postResponses, nil
+	}
+
+	posts, err := ps.repo.GetPostsByUserID(ctx, userID, page, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch posts for user %s from DB: %w", userID, err)
+	}
+
+	postResponses = ps.mapper.MapEach(posts)
+	if err := ps.setToCache(ctx, cacheKey, postResponses, cache.CacheTTL); err != nil {
+		ps.logger.Warnf("failed to set user posts (user=%s, page=%d, limit=%d) to cache: %v", userID, page, limit, err)
+	}
+
+	ps.logger.Infof("Fetched posts for user %s (page=%d, limit=%d) from DB and cached", userID, page, limit)
 	return postResponses, nil
 }
 
