@@ -3,9 +3,9 @@ package events
 import "github.com/google/uuid"
 
 const (
-	PostCreated = "PostCreated"
-	PostUpdated = "PostUpdated"
-	PostDeleted = "PostDeleted"
+	PostCreated = "PostCreatedEvent"
+	PostUpdated = "PostUpdatedEvent"
+	PostDeleted = "PostDeletedEvent"
 )
 
 type PostCreatedEvent struct {

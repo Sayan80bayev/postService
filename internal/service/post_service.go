@@ -151,7 +151,7 @@ func (ps *PostService) CreatePost(ctx context.Context, p request.PostRequest) er
 		return fmt.Errorf("failed to create post: %w", err)
 	}
 
-	return ps.publishEvent(ctx, "PostCreatedEvent", events.PostCreatedEvent{
+	return ps.publishEvent(ctx, events.PostCreated, events.PostCreatedEvent{
 		PostID: post.ID,
 	})
 }
@@ -196,7 +196,7 @@ func (ps *PostService) UpdatePost(ctx context.Context, postId uuid.UUID, p reque
 		ps.logger.Warnf("failed to delete posts list cache: %v", err)
 	}
 
-	return ps.publishEvent(ctx, "PostUpdatedEvent", events.PostUpdatedEvent{
+	return ps.publishEvent(ctx, events.PostUpdated, events.PostUpdatedEvent{
 		PostID:       post.ID,
 		MediaNewURLs: extractURLs(post.Media),
 		MediaOldURLs: mediaOldUrls,
@@ -219,7 +219,7 @@ func (ps *PostService) DeletePost(ctx context.Context, postId, userId uuid.UUID)
 		ps.logger.Warnf("failed to delete cache for post %s: %v", postId, err)
 	}
 
-	return ps.publishEvent(ctx, "PostDeletedEvent", events.PostDeletedEvent{
+	return ps.publishEvent(ctx, events.PostDeleted, events.PostDeletedEvent{
 		PostID:    post.ID,
 		MediaURLs: extractURLs(post.Media),
 		FilesURLs: extractURLs(post.Files),
