@@ -10,30 +10,24 @@
 ?   	postService/internal/repository	[no test files]
 ?   	postService/internal/routes	[no test files]
 === RUN   TestPostService_CreatePost_Success
-[32mINFO[0m PostCreatedEvent event published successfully 2025-09-16 11:49:59
+[32mINFO[0m PostCreatedEvent event published successfully 2025-09-21 22:06:53
 --- PASS: TestPostService_CreatePost_Success (0.00s)
 === RUN   TestPostService_GetPosts_CacheMiss_FetchFromRepo
-[32mINFO[0m Fetched posts from DB and cached 2025-09-16 11:49:59
+[32mINFO[0m Fetched posts (page=1, limit=5) from DB and cached 2025-09-21 22:06:53
 --- PASS: TestPostService_GetPosts_CacheMiss_FetchFromRepo (0.00s)
 === RUN   TestPostService_GetPostByID_CacheMiss
-[32mINFO[0m Fetched post 1d27c96d-6872-437e-8047-a7ac56357926 from DB and cached 2025-09-16 11:49:59
+[32mINFO[0m Fetched post 02425ee2-6a94-4589-a157-56249b86e27d from DB and cached 2025-09-21 22:06:53
 --- PASS: TestPostService_GetPostByID_CacheMiss (0.00s)
 === RUN   TestPostService_DeletePost_PermissionDenied
-    post_service_test.go:183: 
-        	Error Trace:	/Users/sayanseksenbaev/Programming/go-project/services/postService/internal/service/post_service_test.go:183
-        	Error:      	Error message not equal:
-        	            	expected: "user not allowed"
-        	            	actual  : "permission validation failed for post 1d27c96d-6872-437e-8047-a7ac56357926: user not allowed to modify this post"
-        	Test:       	TestPostService_DeletePost_PermissionDenied
---- FAIL: TestPostService_DeletePost_PermissionDenied (0.00s)
+--- PASS: TestPostService_DeletePost_PermissionDenied (0.00s)
 === RUN   TestPostService_DeletePost_Success
-[32mINFO[0m PostDeletedEvent event published successfully 2025-09-16 11:49:59
+[32mINFO[0m PostDeletedEvent event published successfully 2025-09-21 22:06:53
 --- PASS: TestPostService_DeletePost_Success (0.00s)
-FAIL
-FAIL	postService/internal/service	1.174s
+PASS
+ok  	postService/internal/service	0.894s
 ?   	postService/internal/transfer/request	[no test files]
 ?   	postService/internal/transfer/response	[no test files]
-2025/09/16 11:49:59 github.com/testcontainers/testcontainers-go - Connected to docker: 
+2025/09/21 22:06:53 github.com/testcontainers/testcontainers-go - Connected to docker: 
   Server Version: 28.3.0
   API Version: 1.50
   Operating System: Docker Desktop
@@ -43,66 +37,66 @@ FAIL	postService/internal/service	1.174s
   Testcontainers for Go Version: v0.38.0
   Resolved Docker Host: unix:///var/run/docker.sock
   Resolved Docker Socket Path: /var/run/docker.sock
-  Test SessionID: 940604cdfc836e9fcf2b6ca823341c622e5dffc81c89d2d07dd34369fea92557
-  Test ProcessID: b06a5c3a-bf8e-4163-a1c6-a9885a2ab5d9
-2025/09/16 11:50:00 🐳 Creating container for image testcontainers/ryuk:0.12.0
-2025/09/16 11:50:00 ✅ Container created: 318c5be8ca16
-2025/09/16 11:50:00 🐳 Starting container: 318c5be8ca16
-2025/09/16 11:50:00 ✅ Container started: 318c5be8ca16
-2025/09/16 11:50:00 ⏳ Waiting for container id 318c5be8ca16 image: testcontainers/ryuk:0.12.0. Waiting for: &{Port:8080/tcp timeout:<nil> PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
-2025/09/16 11:50:00 🔔 Container is ready: 318c5be8ca16
-2025/09/16 11:50:00 🐳 Creating container for image mongo:6.0
-2025/09/16 11:50:00 ✅ Container created: ac7effd3ca49
-2025/09/16 11:50:00 🐳 Starting container: ac7effd3ca49
-2025/09/16 11:50:00 ✅ Container started: ac7effd3ca49
-2025/09/16 11:50:00 ⏳ Waiting for container id ac7effd3ca49 image: mongo:6.0. Waiting for: &{Port:27017/tcp timeout:<nil> PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
-2025/09/16 11:50:01 🔔 Container is ready: ac7effd3ca49
-2025/09/16 11:50:01 🐳 Creating container for image redis:7.0
-2025/09/16 11:50:01 ✅ Container created: d040404e712b
-2025/09/16 11:50:01 🐳 Starting container: d040404e712b
-2025/09/16 11:50:01 ✅ Container started: d040404e712b
-2025/09/16 11:50:01 ⏳ Waiting for container id d040404e712b image: redis:7.0. Waiting for: &{Port:6379/tcp timeout:<nil> PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
-2025/09/16 11:50:01 🔔 Container is ready: d040404e712b
-2025/09/16 11:50:01 🐳 Creating container for image minio/minio:RELEASE.2025-04-22T22-12-26Z
-2025/09/16 11:50:01 ✅ Container created: 3a737e9479a5
-2025/09/16 11:50:01 🐳 Starting container: 3a737e9479a5
-2025/09/16 11:50:01 ✅ Container started: 3a737e9479a5
-2025/09/16 11:50:01 ⏳ Waiting for container id 3a737e9479a5 image: minio/minio:RELEASE.2025-04-22T22-12-26Z. Waiting for: &{timeout:<nil> Log:API: http:// IsRegexp:false Occurrence:1 PollInterval:100ms check:<nil> submatchCallback:<nil> re:<nil> log:[]}
-2025/09/16 11:50:02 🔔 Container is ready: 3a737e9479a5
-2025/09/16 11:50:02 🐳 Creating container for image bitnami/kafka:3.6.1
-2025/09/16 11:50:02 ✅ Container created: fef49b2b75c9
-2025/09/16 11:50:02 🐳 Starting container: fef49b2b75c9
-2025/09/16 11:50:03 ✅ Container started: fef49b2b75c9
-2025/09/16 11:50:03 ⏳ Waiting for container id fef49b2b75c9 image: bitnami/kafka:3.6.1. Waiting for: &{Port:9092/tcp timeout:0x140002ddd40 PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
-2025/09/16 11:50:09 🔔 Container is ready: fef49b2b75c9
-[32mINFO[0m Connected to MongoDB 2025-09-16 11:50:10
-[32mINFO[0m ✅ Connected to Redis at localhost:61653 (DB=0) 2025-09-16 11:50:10
-[32mINFO[0m Redis connected 2025-09-16 11:50:10
-[32mINFO[0m ✅ Successfully connected to MinIO 2025-09-16 11:50:10
-[32mINFO[0m FileStorage connected: bucket=test-bucket host=localhost 2025-09-16 11:50:10
-[32mINFO[0m Kafka producer initialized for topic: post-events 2025-09-16 11:50:10
-[32mINFO[0m Kafka broker: localhost:9092 2025-09-16 11:50:10
+  Test SessionID: d575220e3d6be0b31edcf3b70f698a406cbef986d510ab4ea870a9d144aedf06
+  Test ProcessID: 9d34b6f8-f0c2-4749-bb7d-31452de8b967
+2025/09/21 22:06:53 🐳 Creating container for image testcontainers/ryuk:0.12.0
+2025/09/21 22:06:53 ✅ Container created: be04c5ecfe6f
+2025/09/21 22:06:53 🐳 Starting container: be04c5ecfe6f
+2025/09/21 22:06:54 ✅ Container started: be04c5ecfe6f
+2025/09/21 22:06:54 ⏳ Waiting for container id be04c5ecfe6f image: testcontainers/ryuk:0.12.0. Waiting for: &{Port:8080/tcp timeout:<nil> PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
+2025/09/21 22:06:54 🔔 Container is ready: be04c5ecfe6f
+2025/09/21 22:06:54 🐳 Creating container for image mongo:6.0
+2025/09/21 22:06:54 ✅ Container created: 8bef17c89471
+2025/09/21 22:06:54 🐳 Starting container: 8bef17c89471
+2025/09/21 22:06:54 ✅ Container started: 8bef17c89471
+2025/09/21 22:06:54 ⏳ Waiting for container id 8bef17c89471 image: mongo:6.0. Waiting for: &{Port:27017/tcp timeout:<nil> PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
+2025/09/21 22:06:55 🔔 Container is ready: 8bef17c89471
+2025/09/21 22:06:55 🐳 Creating container for image redis:7.0
+2025/09/21 22:06:55 ✅ Container created: 90f30bcb8da9
+2025/09/21 22:06:55 🐳 Starting container: 90f30bcb8da9
+2025/09/21 22:06:55 ✅ Container started: 90f30bcb8da9
+2025/09/21 22:06:55 ⏳ Waiting for container id 90f30bcb8da9 image: redis:7.0. Waiting for: &{Port:6379/tcp timeout:<nil> PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
+2025/09/21 22:06:55 🔔 Container is ready: 90f30bcb8da9
+2025/09/21 22:06:55 🐳 Creating container for image minio/minio:RELEASE.2025-04-22T22-12-26Z
+2025/09/21 22:06:55 ✅ Container created: ae23610c4e2f
+2025/09/21 22:06:55 🐳 Starting container: ae23610c4e2f
+2025/09/21 22:06:55 ✅ Container started: ae23610c4e2f
+2025/09/21 22:06:55 ⏳ Waiting for container id ae23610c4e2f image: minio/minio:RELEASE.2025-04-22T22-12-26Z. Waiting for: &{timeout:<nil> Log:API: http:// IsRegexp:false Occurrence:1 PollInterval:100ms check:<nil> submatchCallback:<nil> re:<nil> log:[]}
+2025/09/21 22:06:56 🔔 Container is ready: ae23610c4e2f
+2025/09/21 22:06:56 🐳 Creating container for image bitnami/kafka:3.6.1
+2025/09/21 22:06:56 ✅ Container created: 251961a86439
+2025/09/21 22:06:56 🐳 Starting container: 251961a86439
+2025/09/21 22:06:56 ✅ Container started: 251961a86439
+2025/09/21 22:06:56 ⏳ Waiting for container id 251961a86439 image: bitnami/kafka:3.6.1. Waiting for: &{Port:9092/tcp timeout:0x140004940b0 PollInterval:100ms skipInternalCheck:false skipExternalCheck:false}
+2025/09/21 22:07:00 🔔 Container is ready: 251961a86439
+[32mINFO[0m Connected to MongoDB 2025-09-21 22:07:01
+[32mINFO[0m ✅ Connected to Redis at localhost:52253 (DB=0) 2025-09-21 22:07:01
+[32mINFO[0m Redis connected 2025-09-21 22:07:01
+[32mINFO[0m ✅ Successfully connected to MinIO 2025-09-21 22:07:01
+[32mINFO[0m FileStorage connected: bucket=test-bucket host=localhost 2025-09-21 22:07:01
+%3|1758474421.971|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/bootstrap: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+[32mINFO[0m Kafka producer initialized for topic: post-events 2025-09-21 22:07:01
+[32mINFO[0m Kafka broker: localhost:9092 2025-09-21 22:07:01
 === RUN   TestPostLifecycle
---- PASS: TestPostLifecycle (10.07s)
+--- PASS: TestPostLifecycle (10.05s)
 PASS
-2025/09/16 11:50:20 🐳 Stopping container: ac7effd3ca49
-2025/09/16 11:50:21 ✅ Container stopped: ac7effd3ca49
-2025/09/16 11:50:21 🐳 Terminating container: ac7effd3ca49
-2025/09/16 11:50:21 🚫 Container terminated: ac7effd3ca49
-2025/09/16 11:50:21 🐳 Stopping container: d040404e712b
-2025/09/16 11:50:21 ✅ Container stopped: d040404e712b
-2025/09/16 11:50:21 🐳 Terminating container: d040404e712b
-2025/09/16 11:50:21 🚫 Container terminated: d040404e712b
-2025/09/16 11:50:21 🐳 Stopping container: 3a737e9479a5
-2025/09/16 11:50:21 ✅ Container stopped: 3a737e9479a5
-2025/09/16 11:50:21 🐳 Terminating container: 3a737e9479a5
-2025/09/16 11:50:21 🚫 Container terminated: 3a737e9479a5
-2025/09/16 11:50:21 🐳 Stopping container: fef49b2b75c9
-%6|1758005422.081|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/1: Disconnected (after 11549ms in state UP)
-%3|1758005422.564|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/1: Connect to ipv6#[::1]:9092 failed: Connection refused (after 1ms in state CONNECT)
-2025/09/16 11:50:23 ✅ Container stopped: fef49b2b75c9
-2025/09/16 11:50:23 🐳 Terminating container: fef49b2b75c9
-2025/09/16 11:50:23 🚫 Container terminated: fef49b2b75c9
-ok  	postService/tests/integration	24.726s
+2025/09/21 22:07:12 🐳 Stopping container: 8bef17c89471
+2025/09/21 22:07:12 ✅ Container stopped: 8bef17c89471
+2025/09/21 22:07:12 🐳 Terminating container: 8bef17c89471
+2025/09/21 22:07:12 🚫 Container terminated: 8bef17c89471
+2025/09/21 22:07:12 🐳 Stopping container: 90f30bcb8da9
+2025/09/21 22:07:12 ✅ Container stopped: 90f30bcb8da9
+2025/09/21 22:07:12 🐳 Terminating container: 90f30bcb8da9
+2025/09/21 22:07:12 🚫 Container terminated: 90f30bcb8da9
+2025/09/21 22:07:12 🐳 Stopping container: ae23610c4e2f
+2025/09/21 22:07:12 ✅ Container stopped: ae23610c4e2f
+2025/09/21 22:07:12 🐳 Terminating container: ae23610c4e2f
+2025/09/21 22:07:12 🚫 Container terminated: ae23610c4e2f
+2025/09/21 22:07:12 🐳 Stopping container: 251961a86439
+%6|1758474433.001|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/1: Disconnected (after 10012ms in state UP)
+%3|1758474434.009|FAIL|rdkafka#producer-1| [thrd:localhost:9092/bootstrap]: localhost:9092/1: Connect to ipv6#[::1]:9092 failed: Connection refused (after 0ms in state CONNECT)
+2025/09/21 22:07:14 ✅ Container stopped: 251961a86439
+2025/09/21 22:07:14 🐳 Terminating container: 251961a86439
+2025/09/21 22:07:14 🚫 Container terminated: 251961a86439
+ok  	postService/tests/integration	21.565s
 ?   	postService/tests/testutil	[no test files]
-FAIL

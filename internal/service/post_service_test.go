@@ -48,14 +48,14 @@ func (m *MockPostRepo) CreatePost(ctx context.Context, post *model.Post) error {
 	return m.Called(ctx, post).Error(0)
 }
 
-func (m *MockPostRepo) GetPosts(ctx context.Context, page, limit int64) ([]model.Post, error) {
+func (m *MockPostRepo) GetPosts(ctx context.Context, page, limit int64) (*model.PaginatedPosts, error) {
 	args := m.Called(ctx, page, limit)
-	return args.Get(0).([]model.Post), args.Error(1)
+	return args.Get(0).(*model.PaginatedPosts), args.Error(1)
 }
 
-func (m *MockPostRepo) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]model.Post, error) {
+func (m *MockPostRepo) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) (*model.PaginatedPosts, error) {
 	args := m.Called(ctx, userID, page, limit)
-	return args.Get(0).([]model.Post), args.Error(1)
+	return args.Get(0).(*model.PaginatedPosts), args.Error(1)
 }
 
 func (m *MockPostRepo) GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post, error) {
@@ -139,16 +139,23 @@ func TestPostService_GetPosts_CacheMiss_FetchFromRepo(t *testing.T) {
 	cache := new(MockCache)
 	storage := new(MockStorage)
 	producer := new(MockProducer)
-
 	service := NewPostService(repo, storage, cache, producer)
 
+	paginatedPosts := &model.PaginatedPosts{
+		Posts:   []model.Post{{ID: postID, Content: "Test", UserID: userID}},
+		Page:    1,
+		Limit:   5,
+		Total:   1,
+		HasNext: false,
+	}
+
 	cache.On("Get", ctx, "posts:list_page_1_limit_5").Return("", errors.New("cache miss"))
-	repo.On("GetPosts", ctx, int64(1), int64(5)).Return([]model.Post{{ID: postID, Content: "Test", UserID: userID}}, nil)
+	repo.On("GetPosts", ctx, int64(1), int64(5)).Return(paginatedPosts, nil)
 	cache.On("Set", ctx, "posts:list_page_1_limit_5", mock.Anything, mock.Anything).Return(nil)
 
-	posts, err := service.GetPosts(ctx, int64(1), int64(5))
+	paginatedPostsResponse, err := service.GetPosts(ctx, int64(1), int64(5))
 	assert.NoError(t, err)
-	assert.Len(t, posts, 1)
+	assert.Len(t, paginatedPostsResponse.Posts, 1)
 }
 
 func TestPostService_GetPostByID_CacheMiss(t *testing.T) {

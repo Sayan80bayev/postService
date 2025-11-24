@@ -25,13 +25,12 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = logger.Out
 	r := gin.New()
-
 	r.Use(gin.Recovery())
 	r.Use(logging.Middleware)
 
 	routes.SetupRoutes(r, c)
 
-	logger.Infof("🚀 Server is running on port %s", c.Config.Port)
+	logger.Infof("Server is running on port %s", c.Config.Port)
 	err = r.Run(":" + c.Config.Port)
 	if err != nil {
 		logger.Errorf("Error starting server: %v", err)

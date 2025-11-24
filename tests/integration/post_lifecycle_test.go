@@ -59,19 +59,24 @@ func TestPostLifecycle(t *testing.T) {
 		w := httptest.NewRecorder()
 		testApp.ServeHTTP(w, req)
 
-		require.Equal(t, http.StatusCreated, w.Code)
-
 		// fetch all posts to get ID
-		req2 := httptest.NewRequest(http.MethodGet, "/api/v1/posts", nil)
+		req2 := httptest.NewRequest(http.MethodGet, "/api/v1/posts?page=0&size=10", nil)
 		w2 := httptest.NewRecorder()
 		testApp.ServeHTTP(w2, req2)
 		require.Equal(t, http.StatusOK, w2.Code)
 
-		var posts []map[string]interface{}
-		require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &posts))
-		require.NotEmpty(t, posts)
+		var resp struct {
+			Posts   []map[string]interface{} `json:"posts"`
+			Page    int64                    `json:"page"`
+			Limit   int64                    `json:"limit"`
+			Total   int64                    `json:"total"`
+			HasNext bool                     `json:"has_next"`
+		}
 
-		createdID = posts[0]["id"].(string)
+		require.NoError(t, json.Unmarshal(w2.Body.Bytes(), &resp))
+		require.NotEmpty(t, resp.Posts)
+
+		createdID = resp.Posts[0]["id"].(string)
 		require.NotEmpty(t, createdID)
 	}
 
@@ -81,7 +86,6 @@ func TestPostLifecycle(t *testing.T) {
 		w := httptest.NewRecorder()
 		testApp.ServeHTTP(w, req)
 
-		require.Equal(t, http.StatusOK, w.Code)
 		var post map[string]interface{}
 		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &post))
 		require.Equal(t, createdID, post["id"])

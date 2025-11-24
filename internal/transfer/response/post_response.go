@@ -19,3 +19,11 @@ type PostResponse struct {
 	CreatedAt    string          `json:"created_at"`
 	UpdatedAt    string          `json:"updated_at"`
 }
+
+type PaginatedPostsResponse struct {
+	Posts   []PostResponse `json:"posts"`
+	Page    int64          `json:"page"`
+	Limit   int64          `json:"limit"`
+	Total   int64          `json:"total"`
+	HasNext bool           `json:"has_next"`
+}

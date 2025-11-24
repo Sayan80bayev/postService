@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	caching "github.com/Sayan80bayev/go-project/pkg/caching"
+	"github.com/Sayan80bayev/go-project/pkg/caching"
 	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"github.com/Sayan80bayev/go-project/pkg/messaging"
 	storage "github.com/Sayan80bayev/go-project/pkg/objectStorage"
@@ -32,8 +32,8 @@ const (
 
 type PostRepository interface {
 	CreatePost(ctx context.Context, post *model.Post) error
-	GetPosts(ctx context.Context, page, limit int64) ([]model.Post, error)
-	GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]model.Post, error)
+	GetPosts(ctx context.Context, page, limit int64) (*model.PaginatedPosts, error)
+	GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) (*model.PaginatedPosts, error)
 	GetPostByID(ctx context.Context, id uuid.UUID) (*model.Post, error)
 	UpdatePost(ctx context.Context, post *model.Post) error
 	DeletePost(ctx context.Context, id uuid.UUID) error
@@ -60,10 +60,10 @@ func NewPostService(repo PostRepository, fileStorage storage.FileStorage, cacheS
 }
 
 // GetPosts with pagination
-func (ps *PostService) GetPosts(ctx context.Context, page, limit int64) ([]response.PostResponse, error) {
+func (ps *PostService) GetPosts(ctx context.Context, page, limit int64) (response.PaginatedPostsResponse, error) {
 	cacheKey := fmt.Sprintf("%s_page_%d_limit_%d", cache.CacheKeyPostsList, page, limit)
 
-	var postResponses []response.PostResponse
+	var postResponses response.PaginatedPostsResponse
 	if err := ps.getFromCache(ctx, cacheKey, &postResponses); err == nil {
 		ps.logger.Infof("Fetched posts (page=%d, limit=%d) from cache", page, limit)
 		return postResponses, nil
@@ -71,10 +71,10 @@ func (ps *PostService) GetPosts(ctx context.Context, page, limit int64) ([]respo
 
 	posts, err := ps.repo.GetPosts(ctx, page, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch posts from DB: %w", err)
+		return response.PaginatedPostsResponse{}, fmt.Errorf("failed to fetch posts from DB: %w", err)
 	}
 
-	postResponses = ps.mapper.MapEach(posts)
+	postResponses = ps.mapper.MapPaginated(*posts)
 	if err := ps.setToCache(ctx, cacheKey, postResponses, cache.CacheTTL); err != nil {
 		ps.logger.Warnf("failed to set posts (page=%d, limit=%d) to cache: %v", page, limit, err)
 	}
@@ -84,10 +84,10 @@ func (ps *PostService) GetPosts(ctx context.Context, page, limit int64) ([]respo
 }
 
 // GetPostsByUserID with pagination
-func (ps *PostService) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) ([]response.PostResponse, error) {
+func (ps *PostService) GetPostsByUserID(ctx context.Context, userID uuid.UUID, page, limit int64) (response.PaginatedPostsResponse, error) {
 	cacheKey := fmt.Sprintf("posts_user_%s_page_%d_limit_%d", userID, page, limit)
 
-	var postResponses []response.PostResponse
+	var postResponses response.PaginatedPostsResponse
 	if err := ps.getFromCache(ctx, cacheKey, &postResponses); err == nil {
 		ps.logger.Infof("Fetched posts for user %s (page=%d, limit=%d) from cache", userID, page, limit)
 		return postResponses, nil
@@ -95,10 +95,10 @@ func (ps *PostService) GetPostsByUserID(ctx context.Context, userID uuid.UUID, p
 
 	posts, err := ps.repo.GetPostsByUserID(ctx, userID, page, limit)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch posts for user %s from DB: %w", userID, err)
+		return response.PaginatedPostsResponse{}, fmt.Errorf("failed to fetch posts for user %s from DB: %w", userID, err)
 	}
 
-	postResponses = ps.mapper.MapEach(posts)
+	postResponses = ps.mapper.MapPaginated(*posts)
 	if err := ps.setToCache(ctx, cacheKey, postResponses, cache.CacheTTL); err != nil {
 		ps.logger.Warnf("failed to set user posts (user=%s, page=%d, limit=%d) to cache: %v", userID, page, limit, err)
 	}
@@ -120,7 +120,7 @@ func (ps *PostService) GetPostByID(ctx context.Context, id uuid.UUID) (*response
 		return nil, fmt.Errorf("failed to fetch post %s from DB: %w", id, err)
 	}
 
-	post = ps.mapper.Map(*modelPost)
+	post = ps.mapper.MapPost(*modelPost)
 	if err := ps.setToCache(ctx, cacheKey, post, cache.CacheTTL); err != nil {
 		ps.logger.Warnf("failed to set post %s to cache: %v", id, err)
 	}
@@ -260,7 +260,6 @@ func (ps *PostService) uploadAndCategorizeData(ctx context.Context, files []*mul
 	}
 
 	if len(allErrors) > 0 {
-		// if using Go 1.20+, consider returning errors.Join(allErrors...)
 		return nil, fmt.Errorf("encountered errors while uploading files: %v", allErrors)
 	}
 

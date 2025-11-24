@@ -13,6 +13,8 @@ github.com/MicahParks/keyfunc/v2 v2.1.0 h1:6ZXKb9Rp6qp1bDbJefnG7cTH8yMN1IC/4nf+G
 github.com/MicahParks/keyfunc/v2 v2.1.0/go.mod h1:rW42fi+xgLJ2FRRXAfNx9ZA8WpD4OeE/yHVMteCkw9k=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
+github.com/Sayan80bayev/go-project v0.0.2-0.20251001164056-0d1d4d7b5f32 h1:PEH61uYx7lh6UBsKwc6gPQX21Ou1zx2WfKSvjpct5GU=
+github.com/Sayan80bayev/go-project v0.0.2-0.20251001164056-0d1d4d7b5f32/go.mod h1:M2YoUtY/C5tVEr+cLAvQ0F1rwO62NnGvKlAQcEyj+eY=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250830151331-dbbc73f7be45 h1:8tPmrc0Z05Jox0aaRP51KwS+BjE0UxZwYF4kRdKO9Ns=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250830151331-dbbc73f7be45/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250831153012-f4ca03fa625a h1:1jwPYdp43eDdpSNNUb3IMiZG7zJVW94A1H7L5rca9Rw=
@@ -25,6 +27,10 @@ github.com/Sayan80bayev/go-project/pkg v0.0.0-20250916062413-14c7735ac792 h1:hYk
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250916062413-14c7735ac792/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250916063229-15f98d8f9648 h1:5tgvxdILi7PCDpsNiBxer1EIRaSh6nyFgi/EObCzrsU=
 github.com/Sayan80bayev/go-project/pkg v0.0.0-20250916063229-15f98d8f9648/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
+github.com/Sayan80bayev/go-project/pkg v0.0.0-20251001164056-0d1d4d7b5f32 h1:OKSETKwFiCbwAC7uEqO0MBqLPQTDYNHgdtYDcO0g3eY=
+github.com/Sayan80bayev/go-project/pkg v0.0.0-20251001164056-0d1d4d7b5f32/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
+github.com/Sayan80bayev/go-project/pkg v0.0.0-20251009180909-d46f72026378 h1:Af2Q2+aNzVTdQnScX8jR1uhbGPjs/GtItbjYivV3X0k=
+github.com/Sayan80bayev/go-project/pkg v0.0.0-20251009180909-d46f72026378/go.mod h1:nwpYfBtmSNN4brFqp+cfDzp8fs2nln+gtRbiJwXKKQk=
 github.com/actgardner/gogen-avro/v10 v10.1.0/go.mod h1:o+ybmVjEa27AAr35FRqU98DJu1fXES56uXniYFv4yDA=
 github.com/actgardner/gogen-avro/v10 v10.2.1/go.mod h1:QUhjeHPchheYmMDni/Nx7VB0RsT/ee8YIgGY/xpEQgQ=
 github.com/actgardner/gogen-avro/v9 v9.1.0/go.mod h1:nyTj6wPqDJoxM3qdnjcLv+EnMDSDFqE0qDpva2QRmKc=

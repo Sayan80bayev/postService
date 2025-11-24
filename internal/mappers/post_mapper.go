@@ -7,28 +7,32 @@ import (
 )
 
 type PostMapper struct {
-	mapper.MapFunc[model.Post, response.PostResponse]
+	MapPost      mapper.MapFunc[model.Post, response.PostResponse]
+	MapPaginated mapper.MapFunc[model.PaginatedPosts, response.PaginatedPostsResponse]
 }
 
 func NewPostMapper() *PostMapper {
-	return &PostMapper{MapFunc: MapPostToResponse}
+	return &PostMapper{
+		MapPost:      MapPostToResponse,
+		MapPaginated: MapPaginatedPostsToResponse,
+	}
 }
 
 func MapPostToResponse(post model.Post) response.PostResponse {
-	var mediaResponses []response.FilesResponse
-	for _, m := range post.Media {
-		mediaResponses = append(mediaResponses, response.FilesResponse{
+	mediaResponses := make([]response.FilesResponse, len(post.Media))
+	for i, m := range post.Media {
+		mediaResponses[i] = response.FilesResponse{
 			Type: m.Type,
 			URLs: m.URLs,
-		})
+		}
 	}
 
-	var filesResponses []response.FilesResponse
-	for _, m := range post.Files {
-		filesResponses = append(filesResponses, response.FilesResponse{
+	filesResponses := make([]response.FilesResponse, len(post.Files))
+	for i, m := range post.Files {
+		filesResponses[i] = response.FilesResponse{
 			Type: m.Type,
 			URLs: m.URLs,
-		})
+		}
 	}
 
 	return response.PostResponse{
@@ -42,5 +46,20 @@ func MapPostToResponse(post model.Post) response.PostResponse {
 		CommentCount: post.CommentCount,
 		CreatedAt:    post.CreatedAt,
 		UpdatedAt:    post.UpdatedAt,
+	}
+}
+
+func MapPaginatedPostsToResponse(posts model.PaginatedPosts) response.PaginatedPostsResponse {
+	postResponses := make([]response.PostResponse, len(posts.Posts))
+	for i, p := range posts.Posts {
+		postResponses[i] = MapPostToResponse(p)
+	}
+
+	return response.PaginatedPostsResponse{
+		Posts:   postResponses,
+		Page:    posts.Page,
+		Limit:   posts.Limit,
+		Total:   posts.Total,
+		HasNext: posts.HasNext,
 	}
 }
