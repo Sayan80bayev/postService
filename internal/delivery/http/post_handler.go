@@ -2,13 +2,15 @@ package http
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"net/http"
 	"postService/internal/config"
+	"postService/internal/metrics"
 	"postService/internal/service"
 	"postService/internal/transfer/request"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 const (
@@ -28,6 +30,8 @@ func NewPostHandler(postService *service.PostService, cfg *config.Config) *PostH
 
 // CreatePost handles POST /posts
 func (h *PostHandler) CreatePost(c *gin.Context) {
+	metrics.HttpRequests.WithLabelValues("create_post").Inc()
+
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxUploadSize)
 
 	ctx := c.Request.Context()
@@ -73,8 +77,10 @@ func (h *PostHandler) CreatePost(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "Post created successfully"})
 }
 
-// GetPosts handles GET /posts?page=&limit=
+// GetPosts handles GET /posts
 func (h *PostHandler) GetPosts(c *gin.Context) {
+	metrics.HttpRequests.WithLabelValues("get_posts").Inc()
+
 	ctx := c.Request.Context()
 
 	page, limit := parsePagination(c)
@@ -88,8 +94,10 @@ func (h *PostHandler) GetPosts(c *gin.Context) {
 	c.JSON(http.StatusOK, posts)
 }
 
-// GetPostsByUserID handles GET /posts/user/:id?page=&limit=
+// GetPostsByUserID handles GET /posts/user/:id
 func (h *PostHandler) GetPostsByUserID(c *gin.Context) {
+	metrics.HttpRequests.WithLabelValues("get_posts_by_user").Inc()
+
 	ctx := c.Request.Context()
 
 	userIDParam := c.Param("id")
@@ -112,6 +120,8 @@ func (h *PostHandler) GetPostsByUserID(c *gin.Context) {
 
 // GetPostByID handles GET /posts/:id
 func (h *PostHandler) GetPostByID(c *gin.Context) {
+	metrics.HttpRequests.WithLabelValues("get_post_by_id").Inc()
+
 	ctx := c.Request.Context()
 
 	id := c.Param("id")
@@ -132,6 +142,8 @@ func (h *PostHandler) GetPostByID(c *gin.Context) {
 
 // UpdatePost handles PUT /posts/:id
 func (h *PostHandler) UpdatePost(c *gin.Context) {
+	metrics.HttpRequests.WithLabelValues("update_post").Inc()
+
 	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxUploadSize)
 
 	ctx := c.Request.Context()
@@ -185,6 +197,8 @@ func (h *PostHandler) UpdatePost(c *gin.Context) {
 
 // DeletePost handles DELETE /posts/:id
 func (h *PostHandler) DeletePost(c *gin.Context) {
+	metrics.HttpRequests.WithLabelValues("delete_post").Inc()
+
 	ctx := c.Request.Context()
 
 	postID := c.Param("id")

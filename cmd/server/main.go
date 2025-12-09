@@ -2,14 +2,17 @@ package main
 
 import (
 	"context"
-	"github.com/Sayan80bayev/go-project/pkg/logging"
 	"postService/internal/bootstrap"
+	"postService/internal/metrics"
+
+	"github.com/Sayan80bayev/go-project/pkg/logging"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"postService/internal/routes"
 
 	"github.com/gin-gonic/gin"
-	"postService/internal/routes"
 )
 
-// Initialize logrus as the main logger
 var logger = logging.GetLogger()
 
 func main() {
@@ -21,12 +24,14 @@ func main() {
 
 	go c.Consumer.Start(ctx)
 	defer c.Consumer.Close()
+	metrics.Init()
 
 	gin.SetMode(gin.ReleaseMode)
 	gin.DefaultWriter = logger.Out
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(logging.Middleware)
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	routes.SetupRoutes(r, c)
 
